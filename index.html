@@ -167,13 +167,21 @@ body{
   position:relative;
   width:min(94vw,760px);
   max-height:82vh;
+  overflow-y:auto;
+  overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
   display:flex;flex-direction:column;align-items:center;
   gap:18px;
   opacity:0;
   transform:scale(.97);
   transition:opacity .5s ease, transform .5s ease;
+  /* đệm dưới để nội dung cuối (vd. nút xác nhận) không bị dialogue-card che khi cuộn hết */
+  padding-bottom:8px;
 }
 .scene.enter{opacity:1;transform:scale(1)}
+.scene::-webkit-scrollbar{width:5px}
+.scene::-webkit-scrollbar-thumb{background:rgba(232,197,118,.25);border-radius:99px}
+.scene::-webkit-scrollbar-track{background:transparent}
 
 /* ---------- narrative dialogue box ---------- */
 .dialogue{
