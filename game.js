@@ -462,7 +462,35 @@ function mountScene(innerHTML) {
   el.stageRoot.innerHTML = `<div class="scene" id="activeScene">${innerHTML}</div>`;
   const s = $('activeScene');
   requestAnimationFrame(() => requestAnimationFrame(() => s.classList.add('enter')));
+  setupScrollHints(s);
   return s;
+}
+
+// Tự động phát hiện khi nội dung câu đố (.card-scroll) dài hơn vùng
+// hiển thị, để hiện gradient mờ + gợi ý "vuốt lên xem thêm" ở đáy.
+// Chạy cho MỌI chương có .card-frame/.card-scroll, không cần khai báo
+// riêng lẻ từng nơi — và tự cập nhật lại khi nội dung bên trong đổi
+// (chọn biểu tượng, xếp vị trí...) vì kích thước có thể thay đổi.
+function setupScrollHints(sceneEl) {
+  const frames = sceneEl.querySelectorAll('.card-frame');
+  frames.forEach((frame) => {
+    const scrollEl = frame.querySelector('.card-scroll');
+    if (!scrollEl) return;
+    const update = () => {
+      const canScroll = scrollEl.scrollHeight - scrollEl.clientHeight > 8;
+      const atBottom = scrollEl.scrollTop + scrollEl.clientHeight >= scrollEl.scrollHeight - 8;
+      frame.classList.toggle('scrollable', canScroll && !atBottom);
+    };
+    update();
+    scrollEl.addEventListener('scroll', update, { passive: true });
+    if (window.ResizeObserver) {
+      const ro = new ResizeObserver(update);
+      ro.observe(scrollEl);
+    } else {
+      // fallback cho môi trường không hỗ trợ ResizeObserver
+      setInterval(update, 500);
+    }
+  });
 }
 
 /* ============================================================
@@ -638,18 +666,20 @@ const Chapter1 = (() => {
 
     const scene = mountScene(`
       <div class="card-frame">
-        <div style="text-align:center;margin-bottom:6px">
-          <div style="font-family:var(--font-display);font-size:19px;color:var(--gold-1);letter-spacing:.02em">
-            Vòng ${roundIndex + 1} / 3 — Sợi Chỉ Của Những Vì Sao
+        <div class="card-scroll">
+          <div style="text-align:center;margin-bottom:6px">
+            <div style="font-family:var(--font-display);font-size:19px;color:var(--gold-1);letter-spacing:.02em">
+              Vòng ${roundIndex + 1} / 3 — Sợi Chỉ Của Những Vì Sao
+            </div>
+            <div style="font-size:13px;color:var(--paper-dim);margin-top:6px;line-height:1.5">
+              Mai đang tìm quy luật ánh sáng còn thiếu giữa các vì sao. Hãy quan sát độ sáng của những ngôi đã hiện, rồi chọn ngôi sao đúng để lấp vào chỗ trống.
+            </div>
           </div>
-          <div style="font-size:13px;color:var(--paper-dim);margin-top:6px;line-height:1.5">
-            Mai đang tìm quy luật ánh sáng còn thiếu giữa các vì sao. Hãy quan sát độ sáng của những ngôi đã hiện, rồi chọn ngôi sao đúng để lấp vào chỗ trống.
-          </div>
+          <div id="constellationHost" style="display:flex;justify-content:center;margin:18px 0 10px"></div>
+          <div id="ruleHint" style="text-align:center;font-size:12.5px;color:var(--paper-dim);min-height:18px;opacity:0;transition:opacity .4s"></div>
+          <div id="choiceRow" style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:16px"></div>
+          <div class="hint-row" id="attemptHint" style="margin-top:14px"></div>
         </div>
-        <div id="constellationHost" style="display:flex;justify-content:center;margin:18px 0 10px"></div>
-        <div id="ruleHint" style="text-align:center;font-size:12.5px;color:var(--paper-dim);min-height:18px;opacity:0;transition:opacity .4s"></div>
-        <div id="choiceRow" style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:16px"></div>
-        <div class="hint-row" id="attemptHint" style="margin-top:14px"></div>
       </div>
     `);
 
@@ -833,26 +863,29 @@ const Chapter2 = (() => {
     await say('Mai', 'Con không thể đoán bừa. Nhưng nếu lắng nghe từng lời sấm được truyền lại — từng mối liên hệ giữa các biểu tượng — thứ tự đúng sẽ tự hiện ra.');
 
     const scene = mountScene(`
-      <div class="card-frame">
-        <div style="text-align:center;margin-bottom:14px">
-          <div style="font-family:var(--font-display);font-size:19px;color:var(--gold-1)">Sấm Truyền Liên Hoa</div>
-          <div style="font-size:13px;color:var(--paper-dim);margin-top:6px">Ánh Sáng đã cố định ở đỉnh. Xếp 7 biểu tượng còn lại dựa trên 5 lời sấm.</div>
+      <div class="card-frame" id="ch2card">
+        <div class="card-scroll">
+          <div style="text-align:center;margin-bottom:14px">
+            <div style="font-family:var(--font-display);font-size:19px;color:var(--gold-1)">Sấm Truyền Liên Hoa</div>
+            <div style="font-size:13px;color:var(--paper-dim);margin-top:6px">Ánh Sáng đã cố định ở đỉnh. Xếp 7 biểu tượng còn lại dựa trên 5 lời sấm.</div>
+          </div>
+          <div style="display:flex;justify-content:center;margin-bottom:16px">
+            <div id="octagonHost"></div>
+          </div>
+          <div style="max-width:420px;margin:0 auto">
+            <div style="font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold-2);margin-bottom:8px;text-align:center">Lời Sấm</div>
+            <ol id="clueList" style="margin:0 0 16px;padding-left:18px;font-size:13px;line-height:1.65;color:var(--paper-dim)"></ol>
+          </div>
+          <div style="width:100%">
+            <div style="font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold-2);margin:0 0 10px;text-align:center">Biểu Tượng Còn Lại — chạm để chọn</div>
+            <div id="symbolTray" style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center"></div>
+          </div>
         </div>
-        <div style="display:flex;justify-content:center;margin-bottom:16px">
-          <div id="octagonHost"></div>
-        </div>
-        <div style="max-width:420px;margin:0 auto">
-          <div style="font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold-2);margin-bottom:8px;text-align:center">Lời Sấm</div>
-          <ol id="clueList" style="margin:0 0 16px;padding-left:18px;font-size:13px;line-height:1.65;color:var(--paper-dim)"></ol>
-        </div>
-        <div style="width:100%">
-          <div style="font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold-2);margin:0 0 10px;text-align:center">Biểu Tượng Còn Lại — chạm để chọn</div>
-          <div id="symbolTray" style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center"></div>
-        </div>
-        <div style="text-align:center;margin-top:18px">
+        <div class="card-actions">
+          <div class="scroll-hint"><svg viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Vuốt lên để xem thêm</div>
           <button class="btn btn-primary" id="checkBtn">Kiểm chứng lời sấm</button>
+          <div class="hint-row" id="ch2hint" style="margin-top:10px;min-height:18px"></div>
         </div>
-        <div class="hint-row" id="ch2hint" style="margin-top:10px;min-height:18px"></div>
       </div>
     `);
 
@@ -1060,18 +1093,21 @@ const Chapter3 = (() => {
 
     const scene = mountScene(`
       <div class="card-frame">
-        <div style="text-align:center;margin-bottom:10px">
-          <div style="font-family:var(--font-display);font-size:19px;color:var(--gold-1)">Đội Hình Chiến Hào</div>
-          <div style="font-size:13px;color:var(--paper-dim);margin-top:6px">Đặt 4 người vào 4 vị trí dọc chiến hào, thoả mãn toàn bộ mệnh lệnh bên dưới.</div>
+        <div class="card-scroll">
+          <div style="text-align:center;margin-bottom:10px">
+            <div style="font-family:var(--font-display);font-size:19px;color:var(--gold-1)">Đội Hình Chiến Hào</div>
+            <div style="font-size:13px;color:var(--paper-dim);margin-top:6px">Đặt 4 người vào 4 vị trí dọc chiến hào, thoả mãn toàn bộ mệnh lệnh bên dưới.</div>
+          </div>
+          <ol id="ch3clues" style="max-width:520px;margin:14px auto;padding-left:20px;font-size:13px;line-height:1.65;color:var(--paper-dim)"></ol>
+          <div id="postHost"></div>
+          <div style="font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold-2);margin:18px 0 8px;text-align:center">Đồng Đội</div>
+          <div id="peopleTray" style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap"></div>
         </div>
-        <ol id="ch3clues" style="max-width:520px;margin:14px auto;padding-left:20px;font-size:13px;line-height:1.65;color:var(--paper-dim)"></ol>
-        <div id="postHost"></div>
-        <div style="font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold-2);margin:18px 0 8px;text-align:center">Đồng Đội</div>
-        <div id="peopleTray" style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap"></div>
-        <div style="text-align:center;margin-top:18px">
+        <div class="card-actions">
+          <div class="scroll-hint"><svg viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Vuốt lên để xem thêm</div>
           <button class="btn btn-primary" id="ch3check">Triển khai đội hình</button>
+          <div class="hint-row" id="ch3hint" style="margin-top:10px;min-height:18px"></div>
         </div>
-        <div class="hint-row" id="ch3hint" style="margin-top:10px;min-height:18px"></div>
       </div>
     `);
 
@@ -1267,19 +1303,22 @@ const Chapter4 = (() => {
 
     const scene = mountScene(`
       <div class="card-frame">
-        <div style="text-align:center;margin-bottom:10px">
-          <div style="font-family:var(--font-display);font-size:19px;color:var(--gold-1)">Định Vị Giữa Nhiễu Sóng</div>
-          <div style="font-size:13px;color:var(--paper-dim);margin-top:6px">Chọn đúng 1 ô trên hải đồ khớp với cả ba manh mối bên dưới.</div>
+        <div class="card-scroll">
+          <div style="text-align:center;margin-bottom:10px">
+            <div style="font-family:var(--font-display);font-size:19px;color:var(--gold-1)">Định Vị Giữa Nhiễu Sóng</div>
+            <div style="font-size:13px;color:var(--paper-dim);margin-top:6px">Chọn đúng 1 ô trên hải đồ khớp với cả ba manh mối bên dưới.</div>
+          </div>
+          <ol id="ch4clues" style="max-width:520px;margin:14px auto;padding-left:20px;font-size:13px;line-height:1.65;color:var(--paper-dim)"></ol>
+          <div id="gridHost" style="display:flex;justify-content:center;margin:16px 0"></div>
+          <div style="display:flex;justify-content:center;gap:18px;font-size:12px;color:var(--paper-dim);margin-bottom:6px">
+            <span>❄ Băng Trôi Bắc</span><span>⚓ Xác Tàu Cũ</span>
+          </div>
         </div>
-        <ol id="ch4clues" style="max-width:520px;margin:14px auto;padding-left:20px;font-size:13px;line-height:1.65;color:var(--paper-dim)"></ol>
-        <div id="gridHost" style="display:flex;justify-content:center;margin:16px 0"></div>
-        <div style="display:flex;justify-content:center;gap:18px;font-size:12px;color:var(--paper-dim);margin-bottom:6px">
-          <span>❄ Băng Trôi Bắc</span><span>⚓ Xác Tàu Cũ</span>
-        </div>
-        <div style="text-align:center;margin-top:10px">
+        <div class="card-actions">
+          <div class="scroll-hint"><svg viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Vuốt lên để xem thêm</div>
           <button class="btn btn-primary" id="ch4check" disabled>Xác nhận toạ độ</button>
+          <div class="hint-row" id="ch4hint" style="margin-top:10px;min-height:18px"></div>
         </div>
-        <div class="hint-row" id="ch4hint" style="margin-top:10px;min-height:18px"></div>
       </div>
     `);
 
@@ -1411,34 +1450,37 @@ const Chapter5 = (() => {
 
     const scene = mountScene(`
       <div class="card-frame">
-        <div style="text-align:center;margin-bottom:10px">
-          <div style="font-family:var(--font-display);font-size:19px;color:var(--gold-1)">Ba Trụ Nạp</div>
-          <div style="font-size:13px;color:var(--paper-dim);margin-top:6px">Chỉnh tần số ba trụ (1–9) để thoả cả ba lời sấm bên dưới.</div>
+        <div class="card-scroll">
+          <div style="text-align:center;margin-bottom:10px">
+            <div style="font-family:var(--font-display);font-size:19px;color:var(--gold-1)">Ba Trụ Nạp</div>
+            <div style="font-size:13px;color:var(--paper-dim);margin-top:6px">Chỉnh tần số ba trụ (1–9) để thoả cả ba lời sấm bên dưới.</div>
+          </div>
+          <ol id="ch5clues" style="max-width:480px;margin:14px auto;padding-left:20px;font-size:13px;line-height:1.65;color:var(--paper-dim)"></ol>
+          <div style="display:flex;justify-content:center;gap:18px;margin:22px 0 12px;flex-wrap:wrap">
+            ${[0, 1, 2].map(i => `
+              <div style="display:flex;flex-direction:column;align-items:center;gap:10px">
+                <button class="pillar-btn" data-i="${i}" data-dir="1" aria-label="Tăng ${LABELS[i]}" style="
+                  width:44px;height:44px;border-radius:10px;border:1px solid var(--line-strong);
+                  background:rgba(232,197,118,.08);color:var(--gold-1);font-size:20px;font-weight:700;
+                  cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;">+</button>
+                <div id="pillarHost${i}"></div>
+                <button class="pillar-btn" data-i="${i}" data-dir="-1" aria-label="Giảm ${LABELS[i]}" style="
+                  width:44px;height:44px;border-radius:10px;border:1px solid var(--line-strong);
+                  background:rgba(232,197,118,.08);color:var(--gold-1);font-size:20px;font-weight:700;
+                  cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;">−</button>
+                <div style="font-size:11px;color:var(--paper-dim);letter-spacing:.04em;text-align:center">${LABELS[i]}</div>
+              </div>
+            `).join('')}
+          </div>
+          <div style="text-align:center;font-size:13px;color:var(--paper-dim);margin-top:4px">
+            Tổng hiện tại: <b id="sumDisplay" style="color:var(--gold-1)">15</b> / cần <b>12</b>
+          </div>
         </div>
-        <ol id="ch5clues" style="max-width:480px;margin:14px auto;padding-left:20px;font-size:13px;line-height:1.65;color:var(--paper-dim)"></ol>
-        <div style="display:flex;justify-content:center;gap:18px;margin:22px 0 12px;flex-wrap:wrap">
-          ${[0, 1, 2].map(i => `
-            <div style="display:flex;flex-direction:column;align-items:center;gap:10px">
-              <button class="pillar-btn" data-i="${i}" data-dir="1" aria-label="Tăng ${LABELS[i]}" style="
-                width:44px;height:44px;border-radius:10px;border:1px solid var(--line-strong);
-                background:rgba(232,197,118,.08);color:var(--gold-1);font-size:20px;font-weight:700;
-                cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;">+</button>
-              <div id="pillarHost${i}"></div>
-              <button class="pillar-btn" data-i="${i}" data-dir="-1" aria-label="Giảm ${LABELS[i]}" style="
-                width:44px;height:44px;border-radius:10px;border:1px solid var(--line-strong);
-                background:rgba(232,197,118,.08);color:var(--gold-1);font-size:20px;font-weight:700;
-                cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;">−</button>
-              <div style="font-size:11px;color:var(--paper-dim);letter-spacing:.04em;text-align:center">${LABELS[i]}</div>
-            </div>
-          `).join('')}
-        </div>
-        <div style="text-align:center;font-size:13px;color:var(--paper-dim);margin-top:4px">
-          Tổng hiện tại: <b id="sumDisplay" style="color:var(--gold-1)">15</b> / cần <b>12</b>
-        </div>
-        <div style="text-align:center;margin-top:16px">
+        <div class="card-actions">
+          <div class="scroll-hint"><svg viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Vuốt lên để xem thêm</div>
           <button class="btn btn-primary" id="ch5check">Đồng bộ trụ nạp</button>
+          <div class="hint-row" id="ch5hint" style="margin-top:10px;min-height:18px"></div>
         </div>
-        <div class="hint-row" id="ch5hint" style="margin-top:10px;min-height:18px"></div>
       </div>
     `);
 

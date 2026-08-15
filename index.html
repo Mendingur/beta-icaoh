@@ -166,22 +166,14 @@ body{
 .scene{
   position:relative;
   width:min(94vw,760px);
-  max-height:82vh;
-  overflow-y:auto;
-  overflow-x:hidden;
-  -webkit-overflow-scrolling:touch;
+  max-height:86vh;
   display:flex;flex-direction:column;align-items:center;
   gap:18px;
   opacity:0;
   transform:scale(.97);
   transition:opacity .5s ease, transform .5s ease;
-  /* đệm dưới để nội dung cuối (vd. nút xác nhận) không bị dialogue-card che khi cuộn hết */
-  padding-bottom:8px;
 }
 .scene.enter{opacity:1;transform:scale(1)}
-.scene::-webkit-scrollbar{width:5px}
-.scene::-webkit-scrollbar-thumb{background:rgba(232,197,118,.25);border-radius:99px}
-.scene::-webkit-scrollbar-track{background:transparent}
 
 /* ---------- narrative dialogue box ---------- */
 .dialogue{
@@ -320,10 +312,50 @@ body{
   background:linear-gradient(165deg, rgba(24,23,31,.86), rgba(12,11,16,.9));
   border:1px solid var(--line);
   border-radius:var(--radius-lg);
-  padding:22px;
   box-shadow:var(--shadow-deep), inset 0 1px 0 rgba(255,255,255,.04);
   width:100%;
+  display:flex;
+  flex-direction:column;
+  max-height:min(72vh, 640px);
+  overflow:hidden;
 }
+/* Vùng nội dung câu đố cuộn được — mọi phần thay đổi theo từng chương
+   (hình vẽ, mệnh đề, lựa chọn) nằm trong đây, có thể dài hơn màn hình. */
+.card-scroll{
+  padding:22px 22px 14px;
+  overflow-y:auto;
+  overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
+  flex:1 1 auto;
+  min-height:0;
+}
+.card-scroll::-webkit-scrollbar{width:5px}
+.card-scroll::-webkit-scrollbar-thumb{background:rgba(232,197,118,.3);border-radius:99px}
+.card-scroll::-webkit-scrollbar-track{background:transparent}
+/* Vùng hành động chính (nút "Kiểm chứng", "Xác nhận"...) LUÔN cố định,
+   không cuộn theo nội dung — người chơi luôn thấy và bấm được ngay,
+   bất kể đang cuộn tới đâu trong câu đố. */
+.card-actions{
+  flex:none;
+  padding:14px 22px 20px;
+  border-top:1px solid rgba(232,197,118,.12);
+  background:linear-gradient(180deg, rgba(16,15,21,.4), rgba(10,9,13,.6));
+  text-align:center;
+}
+/* Gợi ý còn nội dung phía trên có thể cuộn */
+.card-frame.scrollable .card-scroll{
+  mask-image:linear-gradient(to bottom, black calc(100% - 22px), transparent 100%);
+  -webkit-mask-image:linear-gradient(to bottom, black calc(100% - 22px), transparent 100%);
+}
+.scroll-hint{
+  display:none;
+  align-items:center;justify-content:center;gap:6px;
+  font-size:11px;color:var(--gold-2);letter-spacing:.04em;
+  padding-bottom:6px;
+}
+.card-frame.scrollable .scroll-hint{display:flex}
+.scroll-hint svg{width:12px;height:12px;animation:bob 1.4s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(3px)}}
 .hint-row{
   display:flex;align-items:center;gap:8px;justify-content:center;
   font-size:12.5px;color:var(--paper-dim);letter-spacing:.02em;
