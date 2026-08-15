@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Khúc Ca Hy Vọng — Mầm Xanh Giữa Tro Tàn</title>
+  <meta name="description" content="Mini game sự kiện lấy cảm hứng từ Quyển I — Khúc Ca Hy Vọng.">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app" class="app">
+    <div class="grain"></div>
+    <div id="scene" class="scene"></div>
+
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark">✦</span>
+        <span>KHÚC CA HY VỌNG</span>
+      </div>
+      <div class="stage-label" id="stageLabel"></div>
+      <button id="muteBtn" class="icon-btn" aria-label="Bật/tắt âm thanh">♪</button>
+    </header>
+
+    <main id="game" class="game"></main>
+
+    <div id="toast" class="toast"></div>
+
+    <div id="modal" class="modal hidden">
+      <div class="modal-card">
+        <div class="modal-kicker" id="modalKicker"></div>
+        <h2 id="modalTitle"></h2>
+        <p id="modalText"></p>
+        <button id="modalBtn" class="primary-btn">Tiếp tục</button>
+      </div>
+    </div>
+  </div>
+  <script src="game.js"></script>
+</body>
+</html>
