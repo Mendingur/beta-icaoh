@@ -1,29 +1,1488 @@
-const game=document.getElementById('game'),scene=document.getElementById('scene'),stageLabel=document.getElementById('stageLabel'),toast=document.getElementById('toast'),modal=document.getElementById('modal'),modalKicker=document.getElementById('modalKicker'),modalTitle=document.getElementById('modalTitle'),modalText=document.getElementById('modalText'),modalBtn=document.getElementById('modalBtn'),muteBtn=document.getElementById('muteBtn');
-let stage=0,hope=0,muted=false,keyHandler=null,audioEl=null,audioUnlocked=false,selected=null;
-const MUSIC='assets/audio/Echoes of the Cham.flac';
-const stages=['MỞ ĐẦU','I · GÒ SEN','II · VÔ ƯU CỔ TỰ','III · BIỂN NAM','IV · NAM CỰC','V · VÙNG NGƯỠNG','VI · DÒNG HỒI ỨC','VII · RỪNG TRO','VIII · TÀN TÍCH','IX · KHÚC HỢP ÂM','X · BÌNH MINH'];
-function setStage(n){stage=n;stageLabel.textContent=stages[n]||''}
-function clearKeys(){if(keyHandler){window.removeEventListener('keydown',keyHandler);keyHandler=null}selected=null}
-function flash(msg){toast.textContent=msg;toast.classList.add('show');clearTimeout(flash.timer);flash.timer=setTimeout(()=>toast.classList.remove('show'),1500)}
-function addHope(n){hope=Math.max(0,Math.min(100,hope+n));document.querySelectorAll('.hope-value').forEach(x=>x.textContent=hope+'%');document.querySelectorAll('.hope-fill').forEach(x=>x.style.width=hope+'%')}
-function hud(extra=''){return `<div class="hud"><div class="hope-box"><div class="hope-head"><span>HY VỌNG</span><b class="hope-value">${hope}%</b></div><div class="hope-track"><i class="hope-fill" style="width:${hope}%"></i></div></div>${extra}</div>`}
-function ornament(text){return `<div class="ornament"><span></span><b>${text}</b><span></span></div>`}
-function playMusic(){if(muted)return;if(!audioEl)audioEl=new Audio(MUSIC);audioEl.loop=true;audioEl.volume=.5;if(audioEl.paused)audioEl.play().catch(()=>{})}
-function unlockAudio(){audioUnlocked=true;playMusic()}
-function sfx(kind){if(muted||!audioUnlocked)return;const C=window.AudioContext||window.webkitAudioContext;if(!C)return;const c=sfx.ctx||(sfx.ctx=new C());if(c.state==='suspended')c.resume();const data={click:[560,.05,'sine'],good:[740,.15,'sine'],bad:[160,.12,'triangle'],bloom:[480,.22,'sine'],collect:[680,.12,'triangle'],gate:[220,.42,'sine'],step:[330,.07,'sine']}[kind]||[560,.05,'sine'];const [f,d,w]=data,o=c.createOscillator(),g=c.createGain(),t=c.currentTime;o.type=w;o.frequency.setValueAtTime(f,t);if(['good','bloom','gate'].includes(kind))o.frequency.exponentialRampToValueAtTime(f*1.65,t+d);g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.09,t+.01);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g);g.connect(c.destination);o.start(t);o.stop(t+d+.02)}
-function modalShow(k,t,x,b='Tiếp tục',cb=null){modalKicker.textContent=k;modalTitle.textContent=t;modalText.textContent=x;modalBtn.textContent=b;modal.classList.remove('hidden');modalBtn.onclick=()=>{modal.classList.add('hidden');sfx('click');cb&&cb()}}
-muteBtn.onclick=()=>{muted=!muted;muteBtn.textContent=muted?'×':'♪';if(audioEl){if(muted)audioEl.pause();else if(audioUnlocked)playMusic()}};
-function start(){clearKeys();hope=0;setStage(0);unlockAudio();scene.style.background='radial-gradient(circle at 50% 35%,#5b4533 0,#211712 48%,#070505 100%)';game.innerHTML=`<div class="title-screen"><div class="title-stars">✦　·　✧　·　✦</div><div class="title-kicker">MỘT MINI GAME SỰ KIỆN · QUYỂN I</div><h1>KHÚC CA<br><em>HY VỌNG</em></h1><p>Mầm Xanh Giữa Tro Tàn</p><button class="primary-btn" id="begin">BẮT ĐẦU HÀNH TRÌNH</button><div class="title-note">Một câu chuyện nhỏ được kể bằng ánh sáng, ký ức và những trò chơi.</div></div>`;document.getElementById('begin').onclick=()=>{sfx('click');intro()}}
-function intro(){setStage(0);scene.style.background='radial-gradient(circle at 50% 40%,#493426,#1b120e 65%,#070505)';game.innerHTML=`${ornament('LỜI HỨA CỦA NGƯỜI GIEO HẠT')}<div class="intro-wrap"><div class="story-card"><div class="dialogue-name">BÀ LÀNH</div><p>“Chừng nào con còn gieo hạt, chừng đó vẫn còn ngày mai.”</p><button class="primary-btn" id="next">MỞ CHIẾC HÒM</button></div></div>`;document.getElementById('next').onclick=()=>modalShow('GÒ SEN','Những hạt giống còn lại','Chiếc hòm gỗ cũ giữ lại một lời hứa. Hành trình bắt đầu từ chính đôi tay của Mai.','GIEO HẠT',stage1)}
-function stage1(){clearKeys();setStage(1);scene.style.background='linear-gradient(180deg,#3a2a20,#18110d 65%,#090705)';const total=30,need=20;let planted=0;game.innerHTML=`${ornament('GÒ SEN · MẦM XANH GIỮA TRO TÀN')}<div class="quote-card">“Một hạt giống không chỉ là sự sống. Nó là lời hứa rằng ngày mai vẫn đáng để chờ.”</div><div class="garden-field" id="field"></div><div class="stage-objective"><b>GÒ SEN</b><span>Gieo ${need} hạt vào những ô đất còn có thể hồi sinh.</span></div>${hud('<div class="counter">✿ <b id="count">0</b> / '+need+'</div>')}`;const field=document.getElementById('field');for(let i=0;i<total;i++){const b=document.createElement('button'),dead=Math.random()<.2;b.className='soil'+(dead?' dead':'');b.type='button';b.setAttribute('aria-label',dead?'Đất tro tàn':'Ô đất có thể gieo');if(dead){b.disabled=true;b.tabIndex=-1}else b.onclick=()=>{if(b.dataset.done)return;b.dataset.done='1';planted++;if(planted%2===0)addHope(1);sfx('bloom');b.innerHTML='<span class="sprout-dot">•</span>';setTimeout(()=>b.innerHTML='<span class="sprout-stem">⌁</span>',220);setTimeout(()=>b.innerHTML='<span class="lotus-mark">✿</span>',650);document.getElementById('count').textContent=planted;if(planted===need)setTimeout(()=>modalShow('GÒ SEN','Mầm xanh trở lại','Hai mươi hạt đã bén rễ. Một tiếng gọi cổ xưa vọng lên từ phía núi.','ĐẾN VÔ ƯU CỔ TỰ',stage2),650)};field.append(b)}}
-function stage2(){clearKeys();setStage(2);scene.style.background='radial-gradient(circle at 50% 48%,#493628,#16100d 76%)';game.innerHTML=`${ornament('VÔ ƯU CỔ TỰ · PHIẾN BIA VỠ')}<div class="relic-repair"><div class="relic-copy"><b>BA MẢNH SẤM TRUYỀN</b><p>Không cần đoán ký hiệu. Hãy trả ba mảnh bia về đúng bệ khắc của chúng.</p><span>Chọn một mảnh, rồi chọn bệ cùng hoa văn.</span></div><div class="relic-slots" id="slots"><button class="relic-slot" data-piece="sun">BÌNH MINH</button><button class="relic-slot" data-piece="lotus">LIÊN HOA</button><button class="relic-slot" data-piece="gate">NGƯỠNG CỬA</button></div><div class="relic-pieces" id="pieces"><button draggable="true" class="relic-piece sun" data-piece="sun" aria-label="Mảnh bia Bình Minh">☼</button><button draggable="true" class="relic-piece lotus" data-piece="lotus" aria-label="Mảnh bia Liên Hoa">✿</button><button draggable="true" class="relic-piece gate" data-piece="gate" aria-label="Mảnh bia Ngưỡng Cửa">◇</button></div></div><div class="stage-objective"><b>VÔ ƯU CỔ TỰ</b><span>Phục dựng ba mảnh bia. Mỗi mảnh chỉ đi vào đúng một bệ.</span></div>${hud('<div class="counter">◈ <b id="relicCount">0</b> / 3</div>')}`;let placed=0;const pieces=[...document.querySelectorAll('.relic-piece')],slots=[...document.querySelectorAll('.relic-slot')];function place(slot,piece){if(!piece||piece.dataset.piece!==slot.dataset.piece||slot.classList.contains('filled')){sfx('bad');flash('Hoa văn này không khớp.');return}slot.classList.add('filled');slot.textContent='ĐÃ TRỞ VỀ';piece.classList.add('returned');selected=null;placed++;document.getElementById('relicCount').textContent=placed;sfx('good');if(placed===3)setTimeout(()=>modalShow('VÔ ƯU CỔ TỰ','Phiến đá nhớ lại','Ba mảnh bia khép thành một lời chỉ dẫn: hãy lắng nghe thay vì tìm cách chế ngự.','RA BIỂN',stage3),650)}pieces.forEach(p=>{p.onclick=()=>{selected=p;pieces.forEach(x=>x.classList.toggle('selected',x===p));sfx('click')};p.ondragstart=e=>e.dataTransfer.setData('text/plain',p.dataset.piece)});slots.forEach(s=>{s.onclick=()=>place(s,selected);s.ondragover=e=>e.preventDefault();s.ondrop=e=>place(s,pieces.find(p=>p.dataset.piece===e.dataTransfer.getData('text/plain')))})}
-function stage3(){clearKeys();setStage(3);scene.style.background='transparent';game.innerHTML=`${ornament('BIỂN NAM · ÁNH BÌNH MINH')}<div class="sea"><div class="sea-horizon"></div><div class="wave"></div><div class="boat" id="boat"></div></div><div class="stage-objective sea-objective"><b>ÁNH BÌNH MINH</b><span>Lái thuyền đến gần sinh vật. Khi chính sinh vật phát sáng, nhấn <b>SPACE</b>.</span></div><div class="sea-legend">W A S D / ← ↑ ↓ → &nbsp; · &nbsp; SPACE</div>${hud('<div class="counter">✦ <b id="seaCount">0</b> / 5</div>')}`;const sea=game.querySelector('.sea'),boat=document.getElementById('boat');let rescued=0,x=50,y=70;const creatures=[];for(let i=0;i<5;i++){const c=document.createElement('div');c.className='creature';c.style.left=(10+Math.random()*80)+'%';c.style.top=(22+Math.random()*55)+'%';sea.append(c);creatures.push({el:c,x:+parseFloat(c.style.left),y:+parseFloat(c.style.top),calm:false})}function move(){boat.style.left=x+'%';boat.style.top=y+'%';creatures.forEach(c=>c.el.classList.toggle('near',!c.calm&&Math.hypot(x-c.x,y-c.y)<12))}function calm(){const n=creatures.filter(c=>!c.calm).sort((a,b)=>Math.hypot(x-a.x,y-a.y)-Math.hypot(x-b.x,y-b.y))[0];if(!n||Math.hypot(x-n.x,y-n.y)>=12){flash('Hãy lái thuyền đến gần hơn.');return}n.calm=true;n.el.classList.add('calm');rescued++;addHope(2);sfx('good');document.getElementById('seaCount').textContent=rescued;if(rescued===5)setTimeout(()=>modalShow('BIỂN NAM','Kẻ canh giữ ngưỡng cửa','Có những thứ trông như kẻ thù chỉ vì chúng cũng đang cố sống sót.','TIẾN VỀ NAM CỰC',stage4),700)}keyHandler=e=>{const k=e.key.toLowerCase();if(['arrowleft','arrowright','arrowup','arrowdown','a','d','w','s',' '].includes(k))e.preventDefault();if(['a','arrowleft'].includes(k))x=Math.max(4,x-2);if(['d','arrowright'].includes(k))x=Math.min(94,x+2);if(['w','arrowup'].includes(k))y=Math.max(12,y-2);if(['s','arrowdown'].includes(k))y=Math.min(88,y+2);if(k===' ')calm();move()};window.addEventListener('keydown',keyHandler);move()}
-function stage4(){clearKeys();setStage(4);scene.style.background='transparent';game.innerHTML=`${ornament('NAM CỰC · BỜ RÌA THẾ GIỚI')}<div class="portal-v7"><div class="aurora"></div><div class="star-map"></div><div class="portal-plinth"></div><div class="portal-structure"><div class="portal-pillar left"></div><div class="portal-pillar right"></div><div class="portal-lintel"></div><div class="portal-core"><i></i><i></i><i></i></div><div class="portal-sigil s1">✦</div><div class="portal-sigil s2">◈</div><div class="portal-sigil s3">◇</div></div><div class="portal-controls" id="portalControls"><button class="charge-node" aria-label="Nạp tinh thể phía tây">TÂY</button><button class="charge-node" aria-label="Nạp tinh thể trung tâm">TÂM</button><button class="charge-node" aria-label="Nạp tinh thể phía đông">ĐÔNG</button></div></div><div class="stage-objective gate-objective"><b>CÁNH CỔNG XUYÊN GIỚI</b><span>Nạp ba trụ tinh thể để ổn định trường không gian. Khung cổng và vùng năng lượng không có hitbox.</span></div><button class="primary-btn gate-enter" id="enter" disabled>BƯỚC QUA CÁNH CỔNG</button>${hud('<div class="counter">✦ <b id="chargeCount">0</b> / 3</div>')}`;let charge=0;document.querySelectorAll('.charge-node').forEach(b=>b.onclick=()=>{if(b.classList.contains('charged'))return;b.classList.add('charged');charge++;document.getElementById('chargeCount').textContent=charge;sfx('gate');if(charge===3){document.querySelector('.portal-v7').classList.add('online');const enter=document.getElementById('enter');enter.disabled=false;enter.textContent='BƯỚC QUA CÁNH CỔNG';addHope(5);flash('Cánh Cổng đã ổn định.')}});document.getElementById('enter').onclick=()=>{if(document.getElementById('enter').disabled)return;modalShow('CÁNH CỔNG','Bốn giờ sáng','Mười lăm phút. Một cơ hội duy nhất. Một người cần được tìm lại.','BƯỚC VÀO',stage5)}}
-function stage5(){clearKeys();setStage(5);scene.style.background='radial-gradient(circle at 50% 45%,#473650,#16101d 72%)';game.innerHTML=`${ornament('VÙNG NGƯỠNG · LỜI HỨA CÒN LẠI')}<div class="echo-chamber"><div class="echo-line"></div><div class="echo-card" data-id="garden"><b>GÒ SEN</b><span>Hạt giống trong tay Mai</span></div><div class="echo-card" data-id="temple"><b>VÔ ƯU</b><span>Lời khắc trên phiến đá</span></div><div class="echo-card" data-id="sea"><b>BIỂN NAM</b><span>Ánh sáng đã được sẻ chia</span></div><div class="kaito-silhouette">K</div></div><div class="stage-objective threshold-objective"><b>VÙNG NGƯỠNG</b><span>Mở ba hồi ức để thấy con đường dẫn đến Kaito. Chỉ các thẻ hồi ức là tương tác.</span></div><div class="echo-status" id="echoStatus">HỒI ỨC 0 / 3</div><button class="primary-btn threshold-next" id="toRiver" disabled>NHÌN THẤY CON ĐƯỜNG</button>${hud('<div class="counter">◌ <b id="echoCount">0</b> / 3</div>')}`;let seen=0;document.querySelectorAll('.echo-card').forEach(card=>card.onclick=()=>{if(card.classList.contains('seen'))return;card.classList.add('seen');seen++;document.getElementById('echoCount').textContent=seen;document.getElementById('echoStatus').textContent='HỒI ỨC '+seen+' / 3';sfx('collect');if(seen===3){addHope(5);document.getElementById('toRiver').disabled=false;flash('Con đường đến Kaito đã hiện ra.')}});document.getElementById('toRiver').onclick=()=>modalShow('VÙNG NGƯỠNG','Dòng nước phía trước','Ký ức không còn là mảnh rời. Chúng đã biết phải trở về đâu.','ĐẾN DÒNG HỒI ỨC',stage6)}
-function stage6(){clearKeys();setStage(6);scene.style.background='radial-gradient(circle at 50% 45%,#473650,#16101d 72%)';game.innerHTML=`${ornament('DÒNG HỒI ỨC · ĐƯA VỀ ĐÚNG BỜ')}<div class="river-v7" id="river"><div class="river-banks"></div><div class="memory-orbs" id="orbs"></div><div class="memory-banks" id="banks"><button class="memory-bank gold" data-kind="gold">BỜ NẮNG</button><button class="memory-bank jade" data-kind="jade">BỜ SEN</button><button class="memory-bank violet" data-kind="violet">BỜ SAO</button></div></div><div class="stage-objective"><b>DÒNG HỒI ỨC</b><span>Kéo hạt ký ức đến bờ cùng màu; hoặc chọn hạt rồi chọn bờ.</span></div>${hud('<div class="counter">✦ <b id="riverCount">0</b> / 6</div>')}`;const data=[['gold',20,22],['jade',44,20],['violet',74,25],['gold',33,58],['jade',62,49],['violet',82,63]],orbs=document.getElementById('orbs'),banks=[...document.querySelectorAll('.memory-bank')];let done=0;function deposit(bank,orb){if(!orb||bank.dataset.kind!==orb.dataset.kind){sfx('bad');flash('Dòng ký ức này chưa tìm đúng bờ.');return}orb.classList.add('returned');bank.classList.add('filled');selected=null;done++;document.getElementById('riverCount').textContent=done;sfx('good');if(done===6)setTimeout(()=>modalShow('DÒNG HỒI ỨC','Dòng nước yên lại','Mỗi ký ức đều có nơi thuộc về. Ở phía xa, rừng tro không còn che kín lối đi.','VÀO RỪNG TRO',stage7),600)}data.forEach(([kind,l,t],i)=>{let o=document.createElement('button');o.className='memory-orb '+kind;o.dataset.kind=kind;o.id='orb'+i;o.draggable=true;o.style.left=l+'%';o.style.top=t+'%';o.setAttribute('aria-label','Hạt ký ức');o.onclick=()=>{selected=o;document.querySelectorAll('.memory-orb').forEach(x=>x.classList.toggle('selected',x===o))};o.ondragstart=e=>e.dataTransfer.setData('text/plain',o.id);orbs.append(o)});banks.forEach(b=>{b.onclick=()=>deposit(b,selected);b.ondragover=e=>e.preventDefault();b.ondrop=e=>deposit(b,document.getElementById(e.dataTransfer.getData('text/plain')))})}
-function stage7(){clearKeys();setStage(7);scene.style.background='linear-gradient(180deg,#33261d,#15100c 72%,#080706)';const path=new Set([0,1,9,17,18,19,27,35,36,37,38,46,47]);game.innerHTML=`${ornament('RỪNG TRO · LỐI ĐI KHÔNG DẤU')}<div class="ash-maze"><div class="maze-grid" id="maze"></div><i class="maze-walker" id="walker"></i></div><div class="stage-objective"><b>RỪNG TRO</b><span>Di chuyển qua những ô cây còn sống để tới đóa sen ở cuối rừng.</span></div><div class="control-chip">W A S D / ← ↑ ↓ →</div>${hud('<div class="counter">⌁ <b id="mazeCount">0</b> / 1</div>')}`;const maze=document.getElementById('maze');for(let i=0;i<48;i++){let c=document.createElement('i');c.className='maze-cell'+(path.has(i)?' open':'')+(i===47?' exit':'');maze.append(c)}let x=0,y=0;const walker=document.getElementById('walker');function draw(){walker.style.left=(8.7+x*10.35)+'%';walker.style.top=(10+y*13.2)+'%'}draw();keyHandler=e=>{let nx=x,ny=y,k=e.key.toLowerCase();if(['arrowleft','arrowright','arrowup','arrowdown','a','d','w','s'].includes(k))e.preventDefault();if(['a','arrowleft'].includes(k))nx--;if(['d','arrowright'].includes(k))nx++;if(['w','arrowup'].includes(k))ny--;if(['s','arrowdown'].includes(k))ny++;if(nx>=0&&nx<8&&ny>=0&&ny<6&&path.has(ny*8+nx)){x=nx;y=ny;sfx('step');draw();if(x===7&&y===5){document.getElementById('mazeCount').textContent='1';addHope(4);setTimeout(()=>modalShow('RỪNG TRO','Lối đi mở ra','Không có đốm sáng nào để nhặt. Chỉ có một con đường cần đủ kiên nhẫn để nhìn thấy.','ĐẾN TÀN TÍCH',stage8),450)}}};window.addEventListener('keydown',keyHandler)}
-function stage8(){clearKeys();setStage(8);scene.style.background='radial-gradient(circle at 50% 42%,#3d4650,#10151a 72%)';const target=[90,180,0,270,0,90,0,180,270],rot=[0,0,0,0,0,0,0,0,0];game.innerHTML=`${ornament('TÀN TÍCH · DẪN MẠCH ÁNH SÁNG')}<div class="conduit-scene"><div class="conduit-board" id="board"></div></div><div class="stage-objective"><b>TÀN TÍCH</b><span>Click để xoay những phiến dẫn mạch. Hãy nối dòng sáng vào tâm, không cần nhớ thứ tự.</span></div>${hud('<div class="counter">◇ <b id="conduitCount">0</b> / 9</div>')}`;const board=document.getElementById('board');function check(){const n=rot.filter((v,i)=>v===target[i]).length;document.getElementById('conduitCount').textContent=n;if(n===9){addHope(6);sfx('good');setTimeout(()=>modalShow('TÀN TÍCH','Mạch đá đã liền','Ánh sáng chạy qua tàn tích như một câu hát tìm được nhịp thở.','ĐẾN KHÚC HỢP ÂM',stage9),600)}}for(let i=0;i<9;i++){let t=document.createElement('button');t.className='conduit-tile '+([0,2,4,6,8].includes(i)?'straight':'elbow');t.style.setProperty('--turn','0deg');t.onclick=()=>{rot[i]=(rot[i]+90)%360;t.style.setProperty('--turn',rot[i]+'deg');sfx('click');check()};board.append(t)}}
-function stage9(){clearKeys();setStage(9);scene.style.background='radial-gradient(circle at 50% 48%,#2b3540,#0a0f14 76%)';game.innerHTML=`${ornament('KHÚC HỢP ÂM · BA GIỌNG MỘT BÀI CA')}<div class="harmony-v7"><div class="harmony-value">HÒA ÂM <b id="harmVal">0%</b></div><div class="harmony-track"><i id="harmFill"></i></div><div class="fader-row"><label>GIÓ<input class="fader" type="range" min="0" max="100" value="22"></label><label>NƯỚC<input class="fader" type="range" min="0" max="100" value="82"></label><label>LỬA<input class="fader" type="range" min="0" max="100" value="38"></label></div></div><div class="stage-objective"><b>KHÚC HỢP ÂM</b><span>Điều chỉnh ba thanh âm để chúng cùng ở một cao độ. Đây không phải chuỗi phím.</span></div>${hud('<div class="counter">♪ <b id="harmCount">0</b> / 1</div>')}`;let won=false;const inputs=[...document.querySelectorAll('.fader')];function sync(){const vals=inputs.map(i=>+i.value),score=Math.max(0,100-Math.round(vals.reduce((n,v)=>n+Math.abs(v-56),0)*.9));document.getElementById('harmVal').textContent=score+'%';document.getElementById('harmFill').style.width=score+'%';if(score>=96&&!won){won=true;document.getElementById('harmCount').textContent='1';addHope(5);sfx('good');setTimeout(()=>modalShow('KHÚC HỢP ÂM','Đường về ngân lên','Không có nhịp nào cần lặp lại. Chỉ khi ba giọng cùng lắng nghe nhau, bình minh mới tới.','ĐẾN BÌNH MINH',stage10),650)}}inputs.forEach(i=>i.oninput=sync);sync()}
-function stage10(){clearKeys();setStage(10);scene.style.background='linear-gradient(180deg,#17232c 0%,#7a6c56 55%,#e0c88f 100%)';game.innerHTML=`${ornament('BÌNH MINH · KHÚC CA HY VỌNG')}<div class="dawn"><div class="sun"></div><div class="mountains"></div><div class="lotus-horizon">✿　✿　✿</div><button class="final-lotus" id="finalLotus" aria-label="Chạm đóa sen cuối cùng">✿</button></div><div class="stage-objective dawn-objective"><b>BÌNH MINH</b><span>Không còn câu đố. Chạm đóa sen để Mai hoàn tất lời hứa.</span></div>${hud('<div class="counter">☼ <b id="dawnCount">0</b> / 1</div>')}`;document.getElementById('finalLotus').onclick=()=>{document.getElementById('dawnCount').textContent='1';addHope(100);sfx('bloom');setTimeout(ending,700)}}
-function ending(){clearKeys();setStage(10);scene.style.background='linear-gradient(180deg,#18252e 0%,#b59d72 58%,#f0dba7 100%)';game.innerHTML=`<div class="ending"><div class="ending-art"><div class="ending-sun"></div><div class="ending-title">KHÚC CA HY VỌNG</div><div class="ending-line">Có những ngày mai chỉ bắt đầu<br>khi một người vẫn chọn gieo hạt.</div><div class="ending-hope">HY VỌNG · ${hope}%</div><button class="primary-btn" id="again">CHƠI LẠI</button></div></div>`;document.getElementById('again').onclick=()=>start()}
-start();
+'use strict';
+/* ============================================================
+   KHÚC CA HY VỌNG — engine lõi
+   Kiến trúc: state machine 5 chương, canvas ambient layer tách
+   biệt khỏi DOM UI, mỗi chương là 1 module {mount(root), onExit}.
+   ============================================================ */
+
+/* ---------------- global state ---------------- */
+const STATE = {
+  chapterIndex: -1,
+  totalSeconds: 600,      // 10 phút toàn game
+  remaining: 600,
+  timerRunning: false,
+  muted: false,
+  audioCtx: null,
+  audioUnlocked: false,
+  stars: 0,               // thành tích tích lũy (tối đa 15 = 3*5 chương)
+  seedGlow: 0,            // 0..1 "ánh sáng" tích lũy xuyên suốt game, ảnh hưởng hiệu ứng nền
+};
+
+const CHAPTERS = []; // điền ở cuối file bởi mỗi module chương
+
+/* ---------------- DOM refs ---------------- */
+const $ = (id) => document.getElementById(id);
+const el = {
+  bgcanvas: $('bgcanvas'),
+  stageRoot: $('stage-root'),
+  stageBanner: $('stageBanner'),
+  stageEyebrow: $('stageEyebrow'),
+  stageTitle: $('stageTitle'),
+  chapterPips: $('chapterPips'),
+  timerWrap: $('timerWrap'),
+  timerNum: $('timerNum'),
+  timerArc: $('timerArc'),
+  muteBtn: $('muteBtn'),
+  dialogueWrap: $('dialogueWrap'),
+  dialogueCard: $('dialogueCard'),
+  dSpeakerName: $('dSpeakerName'),
+  dText: $('dText'),
+  dActions: $('dActions'),
+  toast: $('toast'),
+  modal: $('modal'),
+  modalKicker: $('modalKicker'),
+  modalTitle: $('modalTitle'),
+  modalText: $('modalText'),
+  modalStars: $('modalStars'),
+  modalActions: $('modalActions'),
+};
+
+/* ============================================================
+   AMBIENT CANVAS ENGINE
+   Lớp nền dùng chung mọi chương: bầu trời sao + hạt sáng vàng
+   trôi nổi + (tuỳ chương) cánh hoa sen / tro tàn / tuyết.
+   ============================================================ */
+const Ambient = (() => {
+  const ctx = el.bgcanvas.getContext('2d', { alpha: false });
+  let W = 0, H = 0, DPR = Math.min(window.devicePixelRatio || 1, 2);
+  let particles = [];
+  let mode = 'dusk'; // dusk | temple | war | sea | pole
+  let raf = null;
+  let t = 0;
+
+  const PALETTES = {
+    dusk:   { top:'#141018', bottom:'#050406', glow:'rgba(255,157,77,.10)' },
+    temple: { top:'#0f1410', bottom:'#050705', glow:'rgba(232,197,118,.10)' },
+    war:    { top:'#160f10', bottom:'#060404', glow:'rgba(255,90,60,.10)' },
+    sea:    { top:'#0a1420', bottom:'#04070b', glow:'rgba(79,214,196,.09)' },
+    pole:   { top:'#0d0f1c', bottom:'#050510', glow:'rgba(139,107,214,.13)' },
+  };
+
+  function resize() {
+    W = window.innerWidth; H = window.innerHeight;
+    el.bgcanvas.width = W * DPR;
+    el.bgcanvas.height = H * DPR;
+    el.bgcanvas.style.width = W + 'px';
+    el.bgcanvas.style.height = H + 'px';
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  function seedParticles() {
+    const count = window.innerWidth < 640 ? 46 : 84;
+    particles = [];
+    for (let i = 0; i < count; i++) {
+      particles.push(spawnParticle(true));
+    }
+  }
+
+  function spawnParticle(randomY) {
+    const kindRoll = Math.random();
+    let kind = 'spark';
+    if (mode === 'temple' && kindRoll < 0.35) kind = 'petal';
+    if (mode === 'war' && kindRoll < 0.3) kind = 'ash';
+    if (mode === 'sea' && kindRoll < 0.25) kind = 'mist';
+    if (mode === 'pole' && kindRoll < 0.3) kind = 'snow';
+    return {
+      kind,
+      x: Math.random() * W,
+      y: randomY ? Math.random() * H : H + 20,
+      r: kind === 'petal' ? 3 + Math.random() * 4 : 0.6 + Math.random() * 1.8,
+      vy: -(0.12 + Math.random() * 0.28),
+      vx: (Math.random() - 0.5) * 0.18,
+      drift: Math.random() * Math.PI * 2,
+      driftSpeed: 0.004 + Math.random() * 0.01,
+      alpha: 0.25 + Math.random() * 0.55,
+      hue: kind === 'ash' ? 20 : kind === 'mist' ? 180 : kind === 'snow' ? 210 : 42,
+      spin: Math.random() * Math.PI * 2,
+      spinSpeed: (Math.random() - 0.5) * 0.02,
+    };
+  }
+
+  function setMode(next) {
+    mode = next;
+  }
+
+  function draw() {
+    t += 1;
+    const pal = PALETTES[mode] || PALETTES.dusk;
+
+    // sky gradient
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, pal.top);
+    g.addColorStop(1, pal.bottom);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+
+    // soft glow center-top, breathing
+    const breathe = 0.85 + Math.sin(t * 0.008) * 0.15;
+    const rg = ctx.createRadialGradient(W * 0.5, H * 0.18, 0, W * 0.5, H * 0.18, Math.max(W, H) * 0.6 * breathe);
+    rg.addColorStop(0, pal.glow);
+    rg.addColorStop(1, 'transparent');
+    ctx.fillStyle = rg;
+    ctx.fillRect(0, 0, W, H);
+
+    // static stars (only dusk/temple/pole feel starry)
+    if (mode !== 'war') {
+      ctx.fillStyle = 'rgba(255,255,255,.5)';
+      for (let i = 0; i < 40; i++) {
+        const sx = (i * 97.3) % W;
+        const sy = (i * 53.7) % (H * 0.6);
+        const tw = 0.4 + 0.6 * Math.abs(Math.sin(t * 0.02 + i));
+        ctx.globalAlpha = tw * 0.5;
+        ctx.fillRect(sx, sy, 1.4, 1.4);
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    // particles
+    for (const p of particles) {
+      p.y += p.vy;
+      p.drift += p.driftSpeed;
+      p.x += p.vx + Math.sin(p.drift) * 0.15;
+      p.spin += p.spinSpeed;
+      if (p.y < -20) { Object.assign(p, spawnParticle(false)); }
+      if (p.x < -20) p.x = W + 20;
+      if (p.x > W + 20) p.x = -20;
+
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.spin);
+      ctx.globalAlpha = p.alpha * (0.6 + 0.4 * Math.sin(t * 0.01 + p.drift));
+      if (p.kind === 'petal') {
+        ctx.fillStyle = `hsl(${p.hue},70%,72%)`;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, p.r, p.r * 0.6, 0, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (p.kind === 'ash') {
+        ctx.fillStyle = `hsl(${p.hue},30%,40%)`;
+        ctx.fillRect(-p.r / 2, -p.r / 2, p.r, p.r);
+      } else if (p.kind === 'snow') {
+        ctx.fillStyle = `hsl(${p.hue},60%,90%)`;
+        ctx.beginPath(); ctx.arc(0, 0, p.r, 0, Math.PI * 2); ctx.fill();
+      } else {
+        ctx.fillStyle = `hsl(${p.hue},85%,70%)`;
+        ctx.shadowColor = `hsl(${p.hue},90%,65%)`;
+        ctx.shadowBlur = 6;
+        ctx.beginPath(); ctx.arc(0, 0, p.r, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    raf = requestAnimationFrame(draw);
+  }
+
+  function start() {
+    seedParticles();
+    if (!raf) raf = requestAnimationFrame(draw);
+  }
+
+  return { start, setMode };
+})();
+
+/* ============================================================
+   AUDIO
+   Nhạc nền loop duy nhất (nếu asset có), + sfx tổng hợp qua
+   WebAudio oscillator (không cần file, luôn hoạt động offline).
+   ============================================================ */
+const Audio_ = (() => {
+  // Không phụ thuộc file nhạc ngoài — toàn bộ âm thanh (nhạc nền ambient +
+  // hiệu ứng) được tổng hợp trực tiếp qua WebAudio để game chạy độc lập,
+  // chỉ cần 1 file HTML/CSS/JS duy nhất, không cần asset đi kèm.
+  let padNodes = null;
+  let padGain = null;
+
+  function ctx() {
+    if (!STATE.audioCtx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      STATE.audioCtx = new AC();
+    }
+    return STATE.audioCtx;
+  }
+
+  function unlock() {
+    if (STATE.audioUnlocked) return;
+    STATE.audioUnlocked = true;
+    try { ctx().resume(); } catch (e) {}
+    startPad();
+  }
+
+  // Pad ambient: 3 oscillator hoà âm nhẹ (kiểu drone thiền), rất khẽ,
+  // tạo không khí nền liên tục mà không cần file nhạc nào.
+  function startPad() {
+    if (STATE.muted || padNodes) return;
+    try {
+      const c = ctx();
+      padGain = c.createGain();
+      padGain.gain.setValueAtTime(0, c.currentTime);
+      padGain.gain.linearRampToValueAtTime(0.028, c.currentTime + 2.5);
+      padGain.connect(c.destination);
+      const freqs = [130.81, 196.0, 164.81]; // C3, G3, E3 — hợp âm trưởng ấm áp
+      padNodes = freqs.map((f, i) => {
+        const osc = c.createOscillator();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(f, c.currentTime);
+        const lfo = c.createOscillator();
+        const lfoGain = c.createGain();
+        lfo.frequency.setValueAtTime(0.06 + i * 0.02, c.currentTime);
+        lfoGain.gain.setValueAtTime(1.5, c.currentTime);
+        lfo.connect(lfoGain).connect(osc.frequency);
+        lfo.start();
+        osc.connect(padGain);
+        osc.start();
+        return { osc, lfo };
+      });
+    } catch (e) {}
+  }
+
+  function stopPad() {
+    if (!padNodes) return;
+    try {
+      const c = ctx();
+      padGain.gain.linearRampToValueAtTime(0, c.currentTime + 0.6);
+      setTimeout(() => {
+        padNodes.forEach(n => { try { n.osc.stop(); n.lfo.stop(); } catch (e) {} });
+        padNodes = null;
+      }, 650);
+    } catch (e) {}
+  }
+
+  function toggleMute() {
+    STATE.muted = !STATE.muted;
+    el.muteBtn.textContent = STATE.muted ? '✕' : '♪';
+    el.muteBtn.style.color = STATE.muted ? 'var(--paper-dim)' : '';
+    if (STATE.muted) stopPad(); else startPad();
+  }
+
+  // sfx nhẹ: chime khi đúng, thud khi sai, swell khi hoàn thành chương
+  function tone(freq, dur, type = 'sine', gainPeak = 0.05, delay = 0) {
+    if (STATE.muted) return;
+    try {
+      const c = ctx();
+      const t0 = c.currentTime + delay;
+      const osc = c.createOscillator();
+      const gain = c.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, t0);
+      gain.gain.setValueAtTime(0, t0);
+      gain.gain.linearRampToValueAtTime(gainPeak, t0 + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      osc.connect(gain).connect(c.destination);
+      osc.start(t0);
+      osc.stop(t0 + dur + 0.05);
+    } catch (e) {}
+  }
+
+  function sfxCorrect() { tone(660, 0.22, 'sine', 0.06); tone(880, 0.28, 'sine', 0.045, 0.05); }
+  function sfxWrong() { tone(160, 0.28, 'sawtooth', 0.05); }
+  function sfxClick() { tone(520, 0.08, 'triangle', 0.03); }
+  function sfxComplete() {
+    [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => tone(f, 0.5, 'sine', 0.05, i * 0.09));
+  }
+  function sfxTick() { tone(1000, 0.03, 'square', 0.012); }
+
+  return { unlock, toggleMute, sfxCorrect, sfxWrong, sfxClick, sfxComplete, sfxTick };
+})();
+
+/* ============================================================
+   UI HELPERS (toast / dialogue / modal)
+   ============================================================ */
+function toast(msg, kind = '') {
+  el.toast.textContent = msg;
+  el.toast.className = 'toast show' + (kind ? ' ' + kind : '');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => { el.toast.classList.remove('show'); }, 1900);
+}
+
+function say(speaker, text, actions = []) {
+  return new Promise((resolve) => {
+    el.dSpeakerName.textContent = speaker;
+    el.dText.textContent = text;
+    el.dActions.innerHTML = '';
+    el.dialogueCard.classList.add('show');
+    const finish = (val) => {
+      el.dialogueCard.classList.remove('show');
+      resolve(val);
+    };
+    if (actions.length === 0) {
+      const btn = document.createElement('button');
+      btn.className = 'btn btn-primary';
+      btn.textContent = 'Tiếp tục';
+      btn.onclick = () => { Audio_.sfxClick(); finish(true); };
+      el.dActions.appendChild(btn);
+    } else {
+      actions.forEach((a) => {
+        const btn = document.createElement('button');
+        btn.className = 'btn ' + (a.primary ? 'btn-primary' : 'btn-ghost');
+        btn.textContent = a.label;
+        btn.onclick = () => { Audio_.sfxClick(); finish(a.value); };
+        el.dActions.appendChild(btn);
+      });
+    }
+  });
+}
+
+function hideDialogue() { el.dialogueCard.classList.remove('show'); }
+
+function starsSVG(n, total = 3) {
+  let s = '';
+  for (let i = 0; i < total; i++) {
+    const filled = i < n;
+    s += `<div class="star-slot"><svg viewBox="0 0 24 24">
+      <path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.7 7-6.3-3.9L5.7 21l1.7-7L2 9.2l7.1-.6L12 2z"
+        fill="${filled ? 'url(#sg)' : 'rgba(255,255,255,.08)'}"
+        stroke="${filled ? 'none' : 'rgba(255,255,255,.15)'}" />
+      <defs><linearGradient id="sg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f6e2ad"/><stop offset="1" stop-color="#ff9d4d"/></linearGradient></defs>
+    </svg></div>`;
+  }
+  return s;
+}
+
+function modal({ kicker = 'KHÚC CA HY VỌNG', title, text, stars = null, actions }) {
+  return new Promise((resolve) => {
+    el.modalKicker.textContent = kicker;
+    el.modalTitle.textContent = title;
+    el.modalText.textContent = text;
+    if (stars !== null) {
+      el.modalStars.style.display = 'flex';
+      el.modalStars.innerHTML = starsSVG(0, 3);
+      // animate stars filling in
+      setTimeout(() => {
+        el.modalStars.innerHTML = starsSVG(stars, 3);
+      }, 260);
+    } else {
+      el.modalStars.style.display = 'none';
+      el.modalStars.innerHTML = '';
+    }
+    el.modalActions.innerHTML = '';
+    actions.forEach((a) => {
+      const btn = document.createElement('button');
+      btn.className = 'btn ' + (a.primary ? 'btn-primary' : 'btn-ghost');
+      btn.textContent = a.label;
+      btn.onclick = () => {
+        Audio_.sfxClick();
+        el.modal.classList.remove('show');
+        resolve(a.value);
+      };
+      el.modalActions.appendChild(btn);
+    });
+    el.modal.classList.add('show');
+  });
+}
+
+/* ============================================================
+   TIMER (đếm ngược tổng 10 phút, chạy xuyên toàn bộ game)
+   ============================================================ */
+const Timer = (() => {
+  let intervalId = null;
+  const CIRC = 97.4; // 2*pi*15.5
+
+  function fmt(s) {
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return `${m}:${sec.toString().padStart(2, '0')}`;
+  }
+
+  function render() {
+    el.timerNum.textContent = fmt(Math.max(0, STATE.remaining));
+    const frac = Math.max(0, STATE.remaining / STATE.totalSeconds);
+    el.timerArc.setAttribute('stroke-dashoffset', String(CIRC * (1 - frac)));
+    el.timerWrap.classList.toggle('warn', STATE.remaining <= 60 && STATE.remaining > 0);
+  }
+
+  function start() {
+    if (intervalId) return;
+    STATE.timerRunning = true;
+    intervalId = setInterval(() => {
+      if (!STATE.timerRunning) return;
+      STATE.remaining -= 1;
+      if (STATE.remaining <= 10 && STATE.remaining > 0) Audio_.sfxTick();
+      render();
+      if (STATE.remaining <= 0) {
+        STATE.remaining = 0;
+        render();
+        onTimeUp();
+      }
+    }, 1000);
+    render();
+  }
+
+  function pause() { STATE.timerRunning = false; }
+  function resume() { STATE.timerRunning = true; }
+
+  return { start, pause, resume, render, fmt };
+})();
+
+async function onTimeUp() {
+  Timer.pause();
+  await modal({
+    kicker: 'HẾT THỜI GIAN',
+    title: 'Ánh sáng lịm dần…',
+    text: 'Mười phút đã trôi qua. Nhưng một hạt giống, dù chưa kịp nảy mầm trọn vẹn, vẫn xứng đáng được gieo lại lần nữa.',
+    actions: [{ label: 'Bắt đầu lại từ đầu', value: true, primary: true }],
+  });
+  restartGame();
+}
+
+/* ============================================================
+   STAGE BANNER + PIPS
+   ============================================================ */
+function renderPips() {
+  el.chapterPips.innerHTML = CHAPTERS.map((c, i) => {
+    const cls = i < STATE.chapterIndex ? 'done' : i === STATE.chapterIndex ? 'active' : '';
+    return `<div class="pip ${cls}"></div>`;
+  }).join('');
+}
+
+function showStageBanner(eyebrow, title) {
+  el.stageEyebrow.textContent = eyebrow;
+  el.stageTitle.textContent = title;
+  el.stageBanner.classList.add('show');
+  clearTimeout(showStageBanner._t);
+  showStageBanner._t = setTimeout(() => {
+    el.stageBanner.classList.remove('show');
+  }, 2600);
+}
+
+/* ============================================================
+   SCENE MOUNT HELPER
+   ============================================================ */
+function mountScene(innerHTML) {
+  el.stageRoot.innerHTML = `<div class="scene" id="activeScene">${innerHTML}</div>`;
+  const s = $('activeScene');
+  requestAnimationFrame(() => requestAnimationFrame(() => s.classList.add('enter')));
+  return s;
+}
+
+/* ============================================================
+   CHAPTER FLOW CONTROLLER
+   ============================================================ */
+async function runChapter(index) {
+  STATE.chapterIndex = index;
+  renderPips();
+  const chapter = CHAPTERS[index];
+  Ambient.setMode(chapter.ambient);
+  showStageBanner(chapter.eyebrow, chapter.title);
+
+  await chapter.run();
+
+  STATE.stars += chapter.starsEarned || 0;
+
+  if (index + 1 < CHAPTERS.length) {
+    await runChapter(index + 1);
+  } else {
+    await finaleSequence();
+  }
+}
+
+async function finaleSequence() {
+  Timer.pause();
+  Audio_.sfxComplete();
+  Ambient.setMode('dusk');
+  const total = STATE.stars;
+  const maxTotal = CHAPTERS.length * 3;
+  let verdict = 'Một mầm xanh đã vươn lên giữa tro tàn.';
+  if (total >= maxTotal - 1) verdict = 'Ánh sáng của Người Gieo Hạt cháy rực rỡ hơn bao giờ hết.';
+  else if (total <= maxTotal / 2) verdict = 'Hạt giống đã nảy mầm — mong manh, nhưng không gì dập tắt được.';
+
+  await modal({
+    kicker: 'HẾT QUYỂN I · KHÚC CA HY VỌNG',
+    title: 'Những Hạt Giống Còn Sót Lại',
+    text: `Gò Sen hồi sinh. Kaito trở về. Và trong ngăn cuối chiếc hòm gỗ gia truyền, một hạt giống lạ lẫm đang chờ một câu chuyện mới.\n\n${verdict}\n\nThành tích: ${total} / ${maxTotal} sao — hoàn thành trong ${Timer.fmt(STATE.totalSeconds - STATE.remaining)}.`,
+    stars: null,
+    actions: [{ label: 'Chơi lại từ đầu', value: true, primary: true }],
+  });
+  restartGame();
+}
+
+function restartGame() {
+  STATE.remaining = STATE.totalSeconds;
+  STATE.stars = 0;
+  STATE.chapterIndex = -1;
+  Timer.render();
+  runChapter(0);
+}
+
+/* ============================================================
+   BOOT
+   ============================================================ */
+function boot() {
+  Ambient.start();
+  el.muteBtn.addEventListener('click', () => Audio_.toggleMute());
+  const unlockOnce = () => { Audio_.unlock(); window.removeEventListener('pointerdown', unlockOnce); };
+  window.addEventListener('pointerdown', unlockOnce);
+  renderPips();
+  Timer.render();
+
+  // Màn chào đầu game trước khi bắt đầu chương 1
+  modal({
+    kicker: 'QUYỂN I · THE SOWER\'S CYCLE',
+    title: 'Khúc Ca Hy Vọng',
+    text: 'Năm 2054, thế giới vỡ vụn thành ba mảnh chiến tranh. Giữa tro tàn của làng Gò Sen, một cô gái vẫn tin vào ánh sáng nơi những vì sao.\n\nBạn có 10 phút để đi cùng Mai — từ ao sen khô cằn đến Cánh Cổng tận cùng Nam Cực — và giữ cho ngọn lửa hy vọng ấy không tắt.',
+    actions: [{ label: 'Bắt đầu hành trình', value: true, primary: true }],
+  }).then(() => {
+    Timer.start();
+    runChapter(0);
+  });
+}
+
+document.addEventListener('DOMContentLoaded', boot);
+'use strict';
+/* ============================================================
+   CHƯƠNG I — GÒ SEN
+   Thiết lập Mai, bà Lành, chiếc hòm hạt giống, ao sen khô cạn.
+   Câu đố: "Sợi Chỉ Của Những Vì Sao" — một dãy 7 ngôi sao sáng
+   lên theo độ sáng tăng dần theo QUY LUẬT ẩn (không phải random):
+   mỗi ngôi sao có độ sáng = tổng 2 ngôi liền trước (kiểu Fibonacci
+   thị giác), người chơi phải suy ra ngôi sao còn thiếu bằng cách
+   đọc quy luật từ các ngôi đã có, rồi chọn đúng cường độ sáng
+   trong 4 lựa chọn. 3 vòng, độ khó tăng dần thật sự (không lặp
+   lại cùng 1 dạng bài).
+   ============================================================ */
+
+const Chapter1 = (() => {
+  let starsEarned = 3;
+  let mistakes = 0;
+
+  // Mỗi round là một dãy số (độ sáng, thang 1..13) theo 1 quy luật.
+  // Người chơi thấy dãy có 1 ô trống (dấu ?) và 4 đáp án.
+  const ROUNDS = [
+    {
+      // Fibonacci-like: mỗi số = tổng 2 số trước
+      seq: [1, 1, 2, 3, 5, null, 13],
+      answer: 8,
+      choices: [8, 9, 7, 10],
+      rule: 'Mỗi vì sao cộng dồn ánh sáng của hai vì sao liền trước.',
+    },
+    {
+      // Cấp số cộng bậc 2 (hiệu số tăng dần: +1,+2,+3,+4,+5)
+      seq: [1, 2, 4, 7, 11, null],
+      answer: 16,
+      choices: [16, 15, 14, 18],
+      rule: 'Khoảng cách giữa hai vì sao liền kề tăng dần: +1, +2, +3, +4, +5…',
+    },
+    {
+      // Xen kẽ hai dãy: vị trí lẻ tăng dần đều, vị trí chẵn giảm dần đều
+      seq: [2, 12, 4, 10, 6, null, 8],
+      answer: 8,
+      choices: [8, 6, 9, 7],
+      rule: 'Có hai dòng ánh sáng xen kẽ nhau: một dòng lớn dần, một dòng nhỏ dần.',
+    },
+  ];
+
+  function starPositions(count) {
+    // toạ độ vòng cung nhẹ, giống chòm sao
+    const pts = [];
+    const w = 560, h = 150;
+    for (let i = 0; i < count; i++) {
+      const frac = i / (count - 1);
+      const x = 30 + frac * (w - 60);
+      const y = 70 + Math.sin(frac * Math.PI) * -46 + (i % 2 === 0 ? 6 : -6);
+      pts.push({ x, y });
+    }
+    return pts;
+  }
+
+  function brightnessToRadius(v) {
+    return 5 + (v / 18) * 10;
+  }
+  function brightnessToOpacity(v) {
+    return 0.35 + (v / 18) * 0.65;
+  }
+
+  function renderConstellation(round, revealedGuess) {
+    const pts = starPositions(round.seq.length);
+    const missingIdx = round.seq.indexOf(null);
+    let svg = `<svg viewBox="0 0 560 170" style="width:100%;max-width:560px;height:auto;overflow:visible">`;
+    // connecting line
+    svg += `<polyline points="${pts.map(p => `${p.x},${p.y}`).join(' ')}" fill="none" stroke="rgba(232,197,118,.22)" stroke-width="1.5" stroke-dasharray="3 5"/>`;
+    pts.forEach((p, i) => {
+      const isMissing = i === missingIdx;
+      const val = isMissing ? (revealedGuess ?? null) : round.seq[i];
+      const r = val !== null ? brightnessToRadius(val) : 9;
+      const op = val !== null ? brightnessToOpacity(val) : 0.9;
+      if (isMissing && val === null) {
+        svg += `<circle cx="${p.x}" cy="${p.y}" r="10" fill="none" stroke="var(--amber)" stroke-width="1.6" stroke-dasharray="2 4" opacity=".85">
+          <animate attributeName="r" values="9;12;9" dur="1.8s" repeatCount="indefinite"/>
+        </circle>`;
+        svg += `<text x="${p.x}" y="${p.y + 4}" text-anchor="middle" font-size="11" fill="var(--amber)" font-family="Inter, sans-serif" font-weight="700">?</text>`;
+      } else {
+        const glowId = `sg${i}`;
+        svg += `<circle cx="${p.x}" cy="${p.y}" r="${r * 2.1}" fill="rgba(246,226,173,${op * 0.14})"/>`;
+        svg += `<circle cx="${p.x}" cy="${p.y}" r="${r}" fill="url(#starGrad)" opacity="${op}"/>`;
+        if (isMissing) {
+          svg += `<circle cx="${p.x}" cy="${p.y}" r="${r + 4}" fill="none" stroke="var(--ok)" stroke-width="1.5" opacity=".8"/>`;
+        }
+      }
+    });
+    svg += `<defs><radialGradient id="starGrad"><stop offset="0%" stop-color="#fff7e0"/><stop offset="60%" stop-color="#f6e2ad"/><stop offset="100%" stop-color="#c9973f"/></radialGradient></defs>`;
+    svg += `</svg>`;
+    return svg;
+  }
+
+  async function playRound(roundIndex) {
+    const round = ROUNDS[roundIndex];
+    let solved = false;
+    let localMistakes = 0;
+
+    const scene = mountScene(`
+      <div class="card-frame">
+        <div style="text-align:center;margin-bottom:6px">
+          <div style="font-family:var(--font-display);font-size:19px;color:var(--gold-1);letter-spacing:.02em">
+            Vòng ${roundIndex + 1} / 3 — Sợi Chỉ Của Những Vì Sao
+          </div>
+          <div style="font-size:13px;color:var(--paper-dim);margin-top:6px;line-height:1.5">
+            Mai đang tìm quy luật ánh sáng còn thiếu giữa các vì sao. Hãy quan sát độ sáng của những ngôi đã hiện, rồi chọn ngôi sao đúng để lấp vào chỗ trống.
+          </div>
+        </div>
+        <div id="constellationHost" style="display:flex;justify-content:center;margin:18px 0 10px"></div>
+        <div id="ruleHint" style="text-align:center;font-size:12.5px;color:var(--paper-dim);min-height:18px;opacity:0;transition:opacity .4s"></div>
+        <div id="choiceRow" style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:16px"></div>
+        <div class="hint-row" id="attemptHint" style="margin-top:14px"></div>
+      </div>
+    `);
+
+    const host = $('constellationHost');
+    const choiceRow = $('choiceRow');
+    const ruleHint = $('ruleHint');
+    const attemptHint = $('attemptHint');
+
+    function draw(guess) {
+      host.innerHTML = renderConstellation(round, guess);
+    }
+    draw(null);
+
+    const shuffled = [...round.choices].sort(() => Math.random() - 0.5);
+    shuffled.forEach((val) => {
+      const btn = document.createElement('button');
+      btn.className = 'btn';
+      btn.style.minWidth = '64px';
+      btn.style.fontSize = '16px';
+      btn.style.fontFamily = 'var(--font-display)';
+      btn.textContent = val;
+      btn.onclick = () => {
+        if (solved) return;
+        if (val === round.answer) {
+          solved = true;
+          Audio_.sfxCorrect();
+          draw(val);
+          btn.style.borderColor = 'var(--ok)';
+          btn.style.background = 'rgba(143,227,166,.12)';
+          toast('Đúng rồi — ánh sáng đã nối liền.', 'ok');
+          Array.from(choiceRow.children).forEach(b => b.disabled = true);
+          setTimeout(() => resolveFn(true), 700);
+        } else {
+          localMistakes++;
+          mistakes++;
+          Audio_.sfxWrong();
+          btn.style.borderColor = 'var(--danger)';
+          btn.style.background = 'rgba(255,92,92,.1)';
+          setTimeout(() => { btn.style.borderColor = ''; btn.style.background = ''; }, 400);
+          attemptHint.innerHTML = `<span class="k">gợi ý</span> ${round.rule}`;
+          ruleHint.style.opacity = '1';
+          toast('Chưa khớp quy luật — thử nhìn lại khoảng cách giữa các ngôi sao.', 'err');
+        }
+      };
+      choiceRow.appendChild(btn);
+    });
+
+    let resolveFn;
+    await new Promise((resolve) => { resolveFn = resolve; });
+    if (localMistakes >= 2) starsEarned = Math.min(starsEarned, 2);
+    if (localMistakes >= 4) starsEarned = Math.min(starsEarned, 1);
+  }
+
+  async function run() {
+    await say('Mai', 'Ao sen đầu làng đã cạn khô ba mùa mưa rồi. Nhưng đêm nay trời quang, không còi báo động — con lại ra sân nhìn sao như bà vẫn hay kể.');
+    await say('Bà Lành', '"Những dải sáng ấy là sợi chỉ dệt từ hy vọng, con ạ." Bà từng nói vậy. Mai chưa từng kể với ai, nhưng cô tin điều đó — không mù quáng, mà chắc chắn đến kỳ lạ.');
+    await say('Mai', 'Càng nhìn lâu, con càng thấy các vì sao không sáng lên tuỳ tiện. Có một quy luật nào đó ẩn giữa chúng — như thể ai đó đã gieo chúng xuống bầu trời, từng hạt một, có tính toán.');
+
+    for (let i = 0; i < ROUNDS.length; i++) {
+      await playRound(i);
+    }
+
+    Audio_.sfxComplete();
+    await say('Mai', 'Con đã nối được sợi chỉ ấy. Trong lồng ngực nhỏ bé của mình, một thứ ánh sáng bắt đầu cháy lên — âm thầm, nhưng không thể dập tắt.', [{ label: 'Tiếp tục', value: true, primary: true }]);
+
+    await modal({
+      kicker: 'PHẦN I · TRO TÀN CỦA THẾ GIỚI CŨ',
+      title: 'Gò Sen — Hoàn Thành',
+      text: mistakes === 0
+        ? 'Mai đọc đúng quy luật ánh sáng ngay từ lần đầu tiên. Bà ngoại sẽ tự hào lắm.'
+        : `Sau ${mistakes} lần dò thử, Mai cũng tìm ra sợi chỉ nối những vì sao. Con đường phía trước còn dài — nhưng đốm lửa đầu tiên đã cháy lên.`,
+      stars: starsEarned,
+      actions: [{ label: 'Rời làng Gò Sen', value: true, primary: true }],
+    });
+  }
+
+  return { run: run, get starsEarned() { return starsEarned; } };
+})();
+
+CHAPTERS.push({
+  key: 'gosen',
+  eyebrow: 'PHẦN I',
+  title: 'Gò Sen',
+  ambient: 'dusk',
+  run: Chapter1.run,
+  get starsEarned() { return Chapter1.starsEarned; },
+});
+'use strict';
+/* ============================================================
+   CHƯƠNG II — VÔ ƯU CỔ TỰ
+   Mai tìm thấy Kaito, gặp sư thầy Tịnh Không, giải Sấm Truyền
+   Liên Hoa khắc trên phiến đá bát giác.
+
+   CÂU ĐỐ: "Tám Cạnh Bát Giác" — suy luận loại trừ kiểu Zebra
+   Puzzle thu nhỏ. "Ánh Sáng" đã khắc sẵn ở đỉnh cao nhất (neo
+   cố định, không thể di chuyển — đúng với việc phiến đá là vật
+   cổ đã có sẵn một phần). Người chơi xếp 7 biểu tượng còn lại
+   vào 7 vị trí trống dựa trên 5 mệnh đề. Đã verify bằng
+   brute-force: nghiệm DUY NHẤT, mỗi mệnh đề thu hẹp không gian
+   nghiệm một cách có ý nghĩa (40320 → 5040 → 720 → 48 → 8 → 1).
+   ============================================================ */
+
+const Chapter2 = (() => {
+  let starsEarned = 3;
+  let wrongChecks = 0;
+
+  const SYMBOLS = [
+    { id: 'sang',  glyph: '☉', name: 'Ánh Sáng' },
+    { id: 'hat',   glyph: '❋', name: 'Hạt Giống' },
+    { id: 'sen',   glyph: '✿', name: 'Hoa Sen' },
+    { id: 'gio',   glyph: '↻', name: 'Gió' },
+    { id: 'bong',  glyph: '☾', name: 'Bóng Tối' },
+    { id: 'nuoc',  glyph: '≈', name: 'Nước' },
+    { id: 'da',    glyph: '▲', name: 'Đá' },
+    { id: 'lua',   glyph: '△', name: 'Lửa' },
+  ];
+  const MOVABLE = SYMBOLS.filter(s => s.id !== 'sang').map(s => s.id);
+
+  // Nghiệm DUY NHẤT đã xác minh bằng brute-force (xem ghi chú thiết kế):
+  // ['sang','hat','sen','gio','bong','nuoc','da','lua']  ứng với vị trí 0..7
+  function opposite(i) { return (i + 4) % 8; }
+  function neighbors(i) { return [(i + 7) % 8, (i + 1) % 8]; }
+  function cwNeighbor(i) { return (i + 1) % 8; }
+
+  const CLUES = [
+    { text: 'Ánh Sáng luôn đối diện Bóng Tối qua tâm phiến đá.', need: ['sang', 'bong'], check: (pos) => opposite(pos.sang) === pos.bong },
+    { text: 'Hạt Giống được khắc kề liền cả Ánh Sáng lẫn Hoa Sen.', need: ['hat', 'sang', 'sen'], check: (pos) => {
+        const n = neighbors(pos.hat); return n.includes(pos.sang) && n.includes(pos.sen);
+      } },
+    { text: 'Lửa và Gió đối diện nhau — ngọn lửa không bao giờ thấy được cơn gió đã thổi bùng nó.', need: ['lua', 'gio'], check: (pos) => opposite(pos.lua) === pos.gio },
+    { text: 'Đá được đặt giữa Nước và Lửa, kề liền cả hai phía.', need: ['da', 'nuoc', 'lua'], check: (pos) => {
+        const n = neighbors(pos.da); return n.includes(pos.nuoc) && n.includes(pos.lua);
+      } },
+    { text: 'Hạt Giống nằm ngay sau Ánh Sáng, theo chiều kim đồng hồ.', need: ['sang', 'hat'], check: (pos) => cwNeighbor(pos.sang) === pos.hat },
+  ];
+
+  function checkAll(placementFull) {
+    const pos = {};
+    placementFull.forEach((id, i) => { if (id) pos[id] = i; });
+    return CLUES.map((c, idx) => {
+      const ready = c.need.every(id => pos[id] !== undefined);
+      return { ok: ready ? c.check(pos) : null, idx };
+    });
+  }
+
+  function octagonPoint(i, cx, cy, R) {
+    const angle = (Math.PI * 2 * i) / 8 - Math.PI / 2;
+    return { x: cx + R * Math.cos(angle), y: cy + R * Math.sin(angle) };
+  }
+
+  function render(placement) {
+    const cx = 170, cy = 170, R = 122;
+    let svg = `<svg viewBox="0 0 340 340" style="width:100%;max-width:320px;height:auto">`;
+    const pts8 = [];
+    for (let i = 0; i < 8; i++) pts8.push(octagonPoint(i, cx, cy, R));
+    svg += `<polygon points="${pts8.map(p => `${p.x},${p.y}`).join(' ')}" fill="rgba(232,197,118,.04)" stroke="rgba(232,197,118,.28)" stroke-width="1.5"/>`;
+    svg += `<circle cx="${cx}" cy="${cy}" r="${R * 0.3}" fill="none" stroke="rgba(232,197,118,.16)" stroke-width="1"/>`;
+    svg += `<text x="${cx}" y="${cy + 5}" text-anchor="middle" font-size="10" letter-spacing="2" fill="rgba(232,197,118,.4)" font-family="Inter">LIÊN HOA</text>`;
+    for (let i = 0; i < 8; i++) {
+      const p = octagonPoint(i, cx, cy, R);
+      const filled = placement[i];
+      const isAnchor = i === 0;
+      svg += `<g class="slot-target" data-slot="${i}" style="cursor:${isAnchor ? 'default' : 'pointer'}">`;
+      svg += `<circle cx="${p.x}" cy="${p.y}" r="25" fill="${filled ? 'rgba(232,197,118,.16)' : 'rgba(255,255,255,.03)'}" stroke="${isAnchor ? 'var(--amber)' : `rgba(232,197,118,${filled ? '.5' : '.22'})`}" stroke-width="${isAnchor ? '2' : '1.5'}"/>`;
+      if (filled) {
+        const sym = SYMBOLS.find(s => s.id === filled);
+        svg += `<text x="${p.x}" y="${p.y + 7}" text-anchor="middle" font-size="22" fill="var(--gold-0)" style="pointer-events:none">${sym.glyph}</text>`;
+      }
+      svg += `</g>`;
+    }
+    svg += `</svg>`;
+    return svg;
+  }
+
+  async function run() {
+    await say('Mai', 'Mười một ngày ở Vô Ưu Cổ Tự, đôi chân cô đã lành. Người lạ cô tìm thấy dưới vách đá — Kaito — cũng dần hồi tỉnh.');
+    await say('Sư thầy Tịnh Không', 'Bốn mươi ba năm bần tăng nghiên cứu phiến đá này. Ánh Sáng đã khắc sẵn ở đỉnh cao nhất, hướng về nơi mặt trời mọc — không ai được phép dịch chuyển nó. Bảy biểu tượng còn lại, con phải tự tìm ra vị trí.');
+    await say('Mai', 'Con không thể đoán bừa. Nhưng nếu lắng nghe từng lời sấm được truyền lại — từng mối liên hệ giữa các biểu tượng — thứ tự đúng sẽ tự hiện ra.');
+
+    const scene = mountScene(`
+      <div class="card-frame">
+        <div style="text-align:center;margin-bottom:14px">
+          <div style="font-family:var(--font-display);font-size:19px;color:var(--gold-1)">Sấm Truyền Liên Hoa</div>
+          <div style="font-size:13px;color:var(--paper-dim);margin-top:6px">Ánh Sáng đã cố định ở đỉnh. Xếp 7 biểu tượng còn lại dựa trên 5 lời sấm.</div>
+        </div>
+        <div style="display:flex;gap:22px;flex-wrap:wrap;justify-content:center;align-items:flex-start">
+          <div id="octagonHost" style="flex:none"></div>
+          <div style="flex:1;min-width:220px;max-width:280px">
+            <div style="font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold-2);margin-bottom:8px">Lời Sấm</div>
+            <ol id="clueList" style="margin:0;padding-left:18px;font-size:13px;line-height:1.65;color:var(--paper-dim)"></ol>
+            <div style="font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold-2);margin:16px 0 8px">Biểu Tượng Còn Lại</div>
+            <div id="symbolTray" style="display:flex;flex-wrap:wrap;gap:8px"></div>
+          </div>
+        </div>
+        <div style="text-align:center;margin-top:18px">
+          <button class="btn btn-primary" id="checkBtn">Kiểm chứng lời sấm</button>
+        </div>
+        <div class="hint-row" id="ch2hint" style="margin-top:10px;min-height:18px"></div>
+      </div>
+    `);
+
+    $('clueList').innerHTML = CLUES.map(c => `<li style="margin-bottom:7px">${c.text}</li>`).join('');
+
+    let placement = new Array(8).fill(null);
+    placement[0] = 'sang'; // neo cố định
+    let selectedSymbol = null;
+
+    const tray = $('symbolTray');
+    function renderTray() {
+      const used = new Set(placement.filter(Boolean));
+      tray.innerHTML = '';
+      MOVABLE.forEach(id => {
+        const sym = SYMBOLS.find(s => s.id === id);
+        const used_ = used.has(id);
+        const chip = document.createElement('button');
+        chip.className = 'btn';
+        chip.style.padding = '8px 10px';
+        chip.style.fontSize = '13px';
+        chip.style.opacity = used_ ? '.32' : '1';
+        chip.disabled = used_;
+        chip.innerHTML = `<span style="font-size:16px;margin-right:6px">${sym.glyph}</span>${sym.name}`;
+        chip.onclick = () => {
+          selectedSymbol = id;
+          Array.from(tray.children).forEach(c => c.style.outline = '');
+          chip.style.outline = '2px solid var(--amber)';
+          toast(`Đã chọn "${sym.name}" — chạm vào một vị trí trống trên bát giác.`);
+        };
+        tray.appendChild(chip);
+      });
+    }
+
+    const host = $('octagonHost');
+    function renderOctagon() {
+      host.innerHTML = render(placement);
+      host.querySelectorAll('.slot-target').forEach(g => {
+        const slot = parseInt(g.getAttribute('data-slot'), 10);
+        if (slot === 0) return; // neo cố định, không tương tác
+        g.addEventListener('click', () => {
+          if (placement[slot]) {
+            placement[slot] = null;
+            Audio_.sfxClick();
+            renderOctagon();
+            renderTray();
+            return;
+          }
+          if (!selectedSymbol) {
+            toast('Hãy chọn một biểu tượng trước.', 'err');
+            return;
+          }
+          placement[slot] = selectedSymbol;
+          selectedSymbol = null;
+          Audio_.sfxClick();
+          renderOctagon();
+          renderTray();
+        });
+      });
+    }
+
+    renderOctagon();
+    renderTray();
+
+    let resolveFn;
+    const donePromise = new Promise(r => resolveFn = r);
+
+    $('checkBtn').addEventListener('click', () => {
+      if (placement.some(p => !p)) {
+        toast('Phiến đá vẫn còn vị trí trống.', 'err');
+        return;
+      }
+      const results = checkAll(placement);
+      const allOk = results.every(r => r.ok === true);
+      const hintEl = $('ch2hint');
+      if (allOk) {
+        Audio_.sfxComplete();
+        toast('Phiến đá rung lên — ánh sáng vàng lan toả khắp căn hầm.', 'ok');
+        host.querySelectorAll('.slot-target circle').forEach(c => c.setAttribute('stroke', 'var(--ok)'));
+        $('checkBtn').disabled = true;
+        setTimeout(() => resolveFn(true), 900);
+      } else {
+        wrongChecks++;
+        Audio_.sfxWrong();
+        const failedIdx = results.filter(r => r.ok === false).map(r => r.idx + 1);
+        hintEl.innerHTML = failedIdx.length
+          ? `<span class="k">sai</span> Lời sấm số ${failedIdx.join(', ')} chưa khớp — hãy sắp xếp lại.`
+          : `<span class="k">gần đúng</span> Hãy hoàn thiện phiến đá để kiểm chứng đầy đủ.`;
+        toast('Chưa khớp với lời sấm — thử lại cách sắp xếp.', 'err');
+      }
+    });
+
+    await donePromise;
+
+    if (wrongChecks >= 4) starsEarned = 1;
+    else if (wrongChecks >= 2) starsEarned = 2;
+
+    await say('Sư thầy Tịnh Không', 'Con đã mở được cánh cửa, Mai à. Nhưng hãy nhớ: một khi đã bước qua, con sẽ không thể quay lại là chính mình như trước nữa.', [{ label: 'Bước qua', value: true, primary: true }]);
+    await say('Kaito', '(giọng còn yếu) …Tôi thấy ánh sáng vàng đó. Từ trong cơn mê man, tôi đã thấy nó dẫn đường cho tôi tới đây.');
+
+    await modal({
+      kicker: 'PHẦN II · LỬA THỬ VÀNG',
+      title: 'Vô Ưu Cổ Tự — Hoàn Thành',
+      text: wrongChecks === 0
+        ? 'Mai giải trọn vẹn Sấm Truyền Liên Hoa chỉ bằng suy luận thuần tuý — không một lần đoán sai.'
+        : `Sau ${wrongChecks} lần thử sai, Mai cũng ráp đúng bảy biểu tượng còn lại. Cánh cửa đã hé mở.`,
+      stars: starsEarned,
+      actions: [{ label: 'Tiếp tục hành trình', value: true, primary: true }],
+    });
+  }
+
+  return { run, get starsEarned() { return starsEarned; } };
+})();
+
+CHAPTERS.push({
+  key: 'voutucotu',
+  eyebrow: 'PHẦN II',
+  title: 'Vô Ưu Cổ Tự',
+  ambient: 'temple',
+  run: Chapter2.run,
+  get starsEarned() { return Chapter2.starsEarned; },
+});
+'use strict';
+/* ============================================================
+   CHƯƠNG III — LỜI THỀ NƠI CHIẾN HÀO BỎ HOANG
+   Bốn người trẻ (Mai, Kaito, Sarah, Alex) phải bố trí đội hình
+   phòng thủ dọc chiến hào để bảo vệ làng.
+
+   CÂU ĐỐ: "Đội Hình Chiến Hào" — bài toán sắp xếp 4 người vào
+   4 vị trí theo thứ tự tuyến tính (0 = gần cổng làng nhất,
+   3 = xa nhất/đài canh), dựa trên 4 mệnh đề về khoảng cách và
+   thứ tự. Đã verify bằng brute-force: 24 hoán vị → nghiệm DUY
+   NHẤT sau 4 mệnh đề, mỗi mệnh đề thu hẹp có ý nghĩa
+   (24 → 6 → 4 → 2 → 1). Khác cơ chế chương 2 (không phải vòng
+   tròn mà là ràng buộc thứ tự + khoảng cách tuyệt đối).
+   ============================================================ */
+
+const Chapter3 = (() => {
+  let starsEarned = 3;
+  let wrongChecks = 0;
+
+  const PEOPLE = [
+    { id: 'mai',   name: 'Mai',   glyph: '✿', desc: 'Người Gieo Hạt' },
+    { id: 'kaito', name: 'Kaito', glyph: '⚔', desc: 'Chiến binh phương xa' },
+    { id: 'sarah', name: 'Sarah', glyph: '✚', desc: 'Y tá dã chiến' },
+    { id: 'alex',  name: 'Alex',  glyph: '☗', desc: 'Kỹ sư radio' },
+  ];
+
+  const POST_LABELS = ['Cổng Làng', 'Ụ Chắn Trước', 'Trạm Sơ Cứu', 'Đài Canh Xa'];
+
+  const CLUES = [
+    { text: 'Alex luôn đứng ở Đài Canh Xa — anh cần khoảng cách để dò sóng radio.', need: ['alex'], check: (pos) => pos.alex === 3 },
+    { text: 'Sarah luôn đứng ngay cạnh Kaito, để có thể sơ cứu anh tức khắc nếu trúng đạn.', need: ['sarah', 'kaito'], check: (pos) => Math.abs(pos.sarah - pos.kaito) === 1 },
+    { text: 'Mai đứng gần cổng làng hơn Kaito — cô không cầm vũ khí, anh luôn chắn phía trước cô.', need: ['mai', 'kaito'], check: (pos) => pos.mai < pos.kaito },
+    { text: 'Kaito đứng gần cổng làng hơn Sarah — anh xông lên trước, cô lùi lại phía sau để băng bó.', need: ['kaito', 'sarah'], check: (pos) => pos.kaito < pos.sarah },
+  ];
+
+  function checkAll(placement) {
+    // placement: array length 4, placement[i] = person id ở vị trí i (0..3), hoặc null
+    const pos = {};
+    placement.forEach((id, i) => { if (id) pos[id] = i; });
+    return CLUES.map((c, idx) => {
+      const ready = c.need.every(id => pos[id] !== undefined);
+      return { ok: ready ? c.check(pos) : null, idx };
+    });
+  }
+
+  function render(placement, selected) {
+    let html = `<div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:6px 0 4px">`;
+    for (let i = 0; i < 4; i++) {
+      const occ = placement[i];
+      const person = occ ? PEOPLE.find(p => p.id === occ) : null;
+      html += `<div class="post-slot" data-post="${i}" style="
+        width:120px;min-height:130px;border-radius:14px;cursor:pointer;
+        display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+        background:${person ? 'rgba(232,197,118,.1)' : 'rgba(255,255,255,.03)'};
+        border:1.5px dashed ${person ? 'rgba(232,197,118,.4)' : 'rgba(232,197,118,.2)'};
+        transition:all .2s;padding:12px 8px;text-align:center;">
+        <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold-2)">${i === 0 ? '← gần làng' : i === 3 ? 'xa nhất →' : 'vị trí ' + (i+1)}</div>
+        <div style="font-size:11px;color:var(--paper-dim);margin-bottom:2px">${POST_LABELS[i]}</div>
+        ${person
+          ? `<div style="font-size:28px">${person.glyph}</div><div style="font-family:var(--font-display);font-size:15px;color:var(--gold-0)">${person.name}</div>`
+          : `<div style="font-size:22px;color:rgba(232,197,118,.3)">+</div>`
+        }
+      </div>`;
+    }
+    html += `</div>`;
+    return html;
+  }
+
+  async function run() {
+    await say('Mai', 'Bốn tháng sau đêm lời thề bên đống lửa tàn, thung lũng không còn yên bình. Nhóm kháng chiến báo tin: một cuộc tập kích sắp ập đến làng.');
+    await say('Kaito', 'Chúng ta chỉ có bốn người và một đêm để chuẩn bị. Mỗi người phải đứng đúng vị trí — sai một bước, cả phòng tuyến sụp đổ.');
+    await say('Sarah', 'Hãy nghĩ kỹ trước khi quyết định. Không phải ai cũng có thể đứng ở đâu tùy ý — vị trí của người này ràng buộc vị trí người kia.');
+
+    const scene = mountScene(`
+      <div class="card-frame">
+        <div style="text-align:center;margin-bottom:10px">
+          <div style="font-family:var(--font-display);font-size:19px;color:var(--gold-1)">Đội Hình Chiến Hào</div>
+          <div style="font-size:13px;color:var(--paper-dim);margin-top:6px">Đặt 4 người vào 4 vị trí dọc chiến hào, thoả mãn toàn bộ mệnh lệnh bên dưới.</div>
+        </div>
+        <ol id="ch3clues" style="max-width:520px;margin:14px auto;padding-left:20px;font-size:13px;line-height:1.65;color:var(--paper-dim)"></ol>
+        <div id="postHost"></div>
+        <div style="font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold-2);margin:18px 0 8px;text-align:center">Đồng Đội</div>
+        <div id="peopleTray" style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap"></div>
+        <div style="text-align:center;margin-top:18px">
+          <button class="btn btn-primary" id="ch3check">Triển khai đội hình</button>
+        </div>
+        <div class="hint-row" id="ch3hint" style="margin-top:10px;min-height:18px"></div>
+      </div>
+    `);
+
+    $('ch3clues').innerHTML = CLUES.map(c => `<li style="margin-bottom:7px">${c.text}</li>`).join('');
+
+    let placement = new Array(4).fill(null);
+    let selected = null;
+
+    const postHost = $('postHost');
+    const tray = $('peopleTray');
+
+    function renderTray() {
+      const used = new Set(placement.filter(Boolean));
+      tray.innerHTML = '';
+      PEOPLE.forEach(p => {
+        const used_ = used.has(p.id);
+        const chip = document.createElement('button');
+        chip.className = 'btn';
+        chip.style.padding = '10px 14px';
+        chip.style.opacity = used_ ? '.32' : '1';
+        chip.disabled = used_;
+        chip.innerHTML = `<span style="font-size:16px;margin-right:6px">${p.glyph}</span>${p.name}`;
+        chip.onclick = () => {
+          selected = p.id;
+          Array.from(tray.children).forEach(c => c.style.outline = '');
+          chip.style.outline = '2px solid var(--amber)';
+          toast(`Đã chọn "${p.name}" — chạm vào một vị trí trên chiến hào.`);
+        };
+        tray.appendChild(chip);
+      });
+    }
+
+    function renderPosts() {
+      postHost.innerHTML = render(placement);
+      postHost.querySelectorAll('.post-slot').forEach(slotEl => {
+        slotEl.addEventListener('click', () => {
+          const i = parseInt(slotEl.getAttribute('data-post'), 10);
+          if (placement[i]) {
+            placement[i] = null;
+            Audio_.sfxClick();
+            renderPosts(); renderTray();
+            return;
+          }
+          if (!selected) { toast('Hãy chọn một đồng đội trước.', 'err'); return; }
+          placement[i] = selected;
+          selected = null;
+          Audio_.sfxClick();
+          renderPosts(); renderTray();
+        });
+      });
+    }
+
+    renderPosts();
+    renderTray();
+
+    let resolveFn;
+    const donePromise = new Promise(r => resolveFn = r);
+
+    $('ch3check').addEventListener('click', () => {
+      if (placement.some(p => !p)) { toast('Vẫn còn vị trí chưa có người trấn giữ.', 'err'); return; }
+      const results = checkAll(placement);
+      const allOk = results.every(r => r.ok === true);
+      const hintEl = $('ch3hint');
+      if (allOk) {
+        Audio_.sfxComplete();
+        toast('Đội hình hoàn hảo — phòng tuyến vững vàng.', 'ok');
+        postHost.querySelectorAll('.post-slot').forEach(s => s.style.borderColor = 'var(--ok)');
+        $('ch3check').disabled = true;
+        setTimeout(() => resolveFn(true), 800);
+      } else {
+        wrongChecks++;
+        Audio_.sfxWrong();
+        const failedIdx = results.filter(r => r.ok === false).map(r => r.idx + 1);
+        hintEl.innerHTML = failedIdx.length
+          ? `<span class="k">sai</span> Mệnh lệnh số ${failedIdx.join(', ')} chưa được tuân thủ.`
+          : `<span class="k">gần đúng</span> Hãy hoàn thiện đội hình để kiểm tra đầy đủ.`;
+        toast('Đội hình còn sơ hở — thử sắp xếp lại.', 'err');
+      }
+    });
+
+    await donePromise;
+
+    if (wrongChecks >= 4) starsEarned = 1;
+    else if (wrongChecks >= 2) starsEarned = 2;
+
+    await say('Alex', 'Radio đã sẵn sàng. Nếu có động tĩnh, tôi sẽ là người đầu tiên biết.', [{ label: 'Giữ vững vị trí', value: true, primary: true }]);
+    await say('Mai', 'Đêm ấy, trận đánh đến rồi đi trong khói lửa. Nhưng đội hình đứng vững — không một ai rời vị trí. Chúng tôi giữ được làng.');
+
+    await modal({
+      kicker: 'PHẦN III · TRO TÀN THỨ HAI',
+      title: 'Chiến Hào Bỏ Hoang — Hoàn Thành',
+      text: wrongChecks === 0
+        ? 'Đội hình được triển khai hoàn hảo ngay từ lần đầu — không một sơ hở.'
+        : `Sau ${wrongChecks} lần điều chỉnh, đội hình cuối cùng cũng vững vàng. Ngôi làng được giữ lại.`,
+      stars: starsEarned,
+      actions: [{ label: 'Tiếp tục hành trình', value: true, primary: true }],
+    });
+  }
+
+  return { run, get starsEarned() { return starsEarned; } };
+})();
+
+CHAPTERS.push({
+  key: 'chienhao',
+  eyebrow: 'PHẦN III',
+  title: 'Chiến Hào Bỏ Hoang',
+  ambient: 'war',
+  run: Chapter3.run,
+  get starsEarned() { return Chapter3.starsEarned; },
+});
+'use strict';
+/* ============================================================
+   CHƯƠNG IV — BẦU TRỜI PHẢN BỘI (BIỂN NAM)
+   Con tàu "Ánh Bình Minh" tiến vào vùng biển băng phía nam.
+   La bàn quay vô nghĩa, tín hiệu nhiễu. Rồi Kaito biến mất.
+
+   CÂU ĐỐ: "Định Vị Giữa Nhiễu Sóng" — lưới toạ độ 5×5 (cột A-E,
+   hàng 1-5). Ba mốc neo đã biết trên hải đồ; ba mệnh đề khoảng
+   cách/hướng dẫn đến đúng 1 ô duy nhất — nơi tín hiệu thật sự
+   phát ra giữa hàng loạt nhiễu sóng giả. Đã verify bằng
+   brute-force: 25 ô → nghiệm DUY NHẤT sau 3 mệnh đề
+   (25 → 5 → 2 → 1), mỗi mệnh đề thu hẹp có ý nghĩa.
+   ============================================================ */
+
+const Chapter4 = (() => {
+  let starsEarned = 3;
+  let wrongChecks = 0;
+  const COLS = ['A', 'B', 'C', 'D', 'E'];
+  const TARGET = { col: 3, row: 1 }; // D2 — đã verify nghiệm duy nhất
+
+  const ANCHORS = {
+    iceberg: { col: 0, row: 0, label: 'Băng Trôi Bắc', glyph: '❄' },
+    wreck:   { col: 4, row: 4, label: 'Xác Tàu Cũ', glyph: '⚓' },
+  };
+
+  function manhattan(a, b) { return Math.abs(a.col - b.col) + Math.abs(a.row - b.row); }
+  function chebyshev(a, b) { return Math.max(Math.abs(a.col - b.col), Math.abs(a.row - b.row)); }
+
+  const d1 = manhattan(TARGET, ANCHORS.iceberg); // 4
+  const d2 = chebyshev(TARGET, ANCHORS.wreck);   // 3
+
+  const CLUES = [
+    { text: `Tín hiệu cách "Băng Trôi Bắc" đúng ${d1} ô theo đường thẳng ngang-dọc (không đi chéo).`, check: (p) => manhattan(p, ANCHORS.iceberg) === d1 },
+    { text: `Tín hiệu nằm trong vòng vuông bán kính ${d2} ô quanh "Xác Tàu Cũ" (tính cả đường chéo).`, check: (p) => chebyshev(p, ANCHORS.wreck) === d2 },
+    { text: `Tín hiệu lệch về phía Đông nhiều hơn phía Bắc — toạ độ cột lớn hơn toạ độ hàng.`, check: (p) => p.col > p.row },
+  ];
+
+  function gridHTML(selected, revealResult) {
+    let html = `<div style="display:inline-grid;grid-template-columns:28px repeat(5,52px);grid-auto-rows:52px;gap:4px;margin:0 auto">`;
+    html += `<div></div>`;
+    COLS.forEach(c => { html += `<div style="display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--gold-2);letter-spacing:.06em">${c}</div>`; });
+    for (let r = 0; r < 5; r++) {
+      html += `<div style="display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--gold-2)">${r + 1}</div>`;
+      for (let c = 0; c < 5; c++) {
+        const isIceberg = ANCHORS.iceberg.col === c && ANCHORS.iceberg.row === r;
+        const isWreck = ANCHORS.wreck.col === c && ANCHORS.wreck.row === r;
+        const isSel = selected && selected.col === c && selected.row === r;
+        let bg = 'rgba(255,255,255,.03)';
+        let border = 'rgba(232,197,118,.16)';
+        let content = '';
+        if (isIceberg) { content = ANCHORS.iceberg.glyph; bg = 'rgba(79,214,196,.1)'; border = 'rgba(79,214,196,.4)'; }
+        if (isWreck) { content = ANCHORS.wreck.glyph; bg = 'rgba(255,157,77,.1)'; border = 'rgba(255,157,77,.4)'; }
+        if (isSel) { border = 'var(--amber)'; bg = 'rgba(255,157,77,.18)'; }
+        if (revealResult && isSel) {
+          bg = revealResult === 'ok' ? 'rgba(143,227,166,.22)' : 'rgba(255,92,92,.18)';
+          border = revealResult === 'ok' ? 'var(--ok)' : 'var(--danger)';
+        }
+        html += `<div class="grid-cell" data-col="${c}" data-row="${r}" style="
+          border-radius:8px;border:1.5px solid ${border};background:${bg};
+          display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;
+          transition:all .15s;">${content}</div>`;
+      }
+    }
+    html += `</div>`;
+    return html;
+  }
+
+  async function run() {
+    await say('Alex', '"Ánh Bình Minh" cắt qua sóng lặng lẽ. Nhưng ba ngày nay, la bàn cứ quay tròn vô nghĩa rồi mới chịu ổn định.');
+    await say('Sáu Đen', 'Hệ thống liên lạc bắt được tín hiệu nhiễu kỳ lạ. Có một nguồn phát thật giữa hàng loạt nhiễu sóng giả — nhưng phải định vị chính xác.');
+    await say('Mai', 'Nếu không tìm đúng toạ độ, con tàu sẽ lạc hướng giữa vùng biển băng này. Con phải đọc được ba manh mối trên hải đồ.');
+
+    const scene = mountScene(`
+      <div class="card-frame">
+        <div style="text-align:center;margin-bottom:10px">
+          <div style="font-family:var(--font-display);font-size:19px;color:var(--gold-1)">Định Vị Giữa Nhiễu Sóng</div>
+          <div style="font-size:13px;color:var(--paper-dim);margin-top:6px">Chọn đúng 1 ô trên hải đồ khớp với cả ba manh mối bên dưới.</div>
+        </div>
+        <ol id="ch4clues" style="max-width:520px;margin:14px auto;padding-left:20px;font-size:13px;line-height:1.65;color:var(--paper-dim)"></ol>
+        <div id="gridHost" style="display:flex;justify-content:center;margin:16px 0"></div>
+        <div style="display:flex;justify-content:center;gap:18px;font-size:12px;color:var(--paper-dim);margin-bottom:6px">
+          <span>❄ Băng Trôi Bắc</span><span>⚓ Xác Tàu Cũ</span>
+        </div>
+        <div style="text-align:center;margin-top:10px">
+          <button class="btn btn-primary" id="ch4check" disabled>Xác nhận toạ độ</button>
+        </div>
+        <div class="hint-row" id="ch4hint" style="margin-top:10px;min-height:18px"></div>
+      </div>
+    `);
+
+    $('ch4clues').innerHTML = CLUES.map(c => `<li style="margin-bottom:7px">${c.text}</li>`).join('');
+
+    let selected = null;
+    const gridHost = $('gridHost');
+    function renderGrid(reveal) {
+      gridHost.innerHTML = gridHTML(selected, reveal);
+      if (!reveal) {
+        gridHost.querySelectorAll('.grid-cell').forEach(cell => {
+          cell.addEventListener('click', () => {
+            const c = parseInt(cell.getAttribute('data-col'), 10);
+            const r = parseInt(cell.getAttribute('data-row'), 10);
+            if ((c === ANCHORS.iceberg.col && r === ANCHORS.iceberg.row) || (c === ANCHORS.wreck.col && r === ANCHORS.wreck.row)) return;
+            selected = { col: c, row: r };
+            Audio_.sfxClick();
+            $('ch4check').disabled = false;
+            renderGrid();
+          });
+        });
+      }
+    }
+    renderGrid();
+
+    let resolveFn;
+    const donePromise = new Promise(r => resolveFn = r);
+
+    $('ch4check').addEventListener('click', () => {
+      if (!selected) return;
+      const results = CLUES.map(c => c.check(selected));
+      const allOk = results.every(Boolean);
+      const hintEl = $('ch4hint');
+      if (allOk) {
+        Audio_.sfxComplete();
+        renderGrid('ok');
+        toast('Toạ độ chính xác — nguồn tín hiệu đã lộ diện.', 'ok');
+        $('ch4check').disabled = true;
+        setTimeout(() => resolveFn(true), 800);
+      } else {
+        wrongChecks++;
+        Audio_.sfxWrong();
+        renderGrid('err');
+        const failedIdx = results.map((ok, i) => ok ? null : i + 1).filter(Boolean);
+        hintEl.innerHTML = `<span class="k">sai</span> Manh mối số ${failedIdx.join(', ')} chưa khớp với ô đã chọn.`;
+        toast('Sai toạ độ — sóng nhiễu vẫn còn dày đặc.', 'err');
+        setTimeout(() => { selected = null; $('ch4check').disabled = true; renderGrid(); }, 900);
+      }
+    });
+
+    await donePromise;
+
+    if (wrongChecks >= 4) starsEarned = 1;
+    else if (wrongChecks >= 2) starsEarned = 2;
+
+    await say('Sáu Đen', 'Định vị chính xác! Nhưng... sóng đang mạnh dần lên bất thường.', [{ label: 'Tiếp tục', value: true, primary: true }]);
+    await say('Mai', 'Đêm đó, bầu trời phía nam bùng lên thứ ánh sáng tím chưa từng thấy. Khi bão tan, boong tàu trống trải — không một dấu vết. "Kaito... anh đâu rồi?"');
+
+    await modal({
+      kicker: 'PHẦN IV · NHỮNG VẾT NỨT',
+      title: 'Bầu Trời Phản Bội — Hoàn Thành',
+      text: wrongChecks === 0
+        ? 'Mai định vị chính xác nguồn tín hiệu ngay từ lần đầu. Nhưng không gì có thể chuẩn bị cho cô trước điều sắp xảy ra.'
+        : `Sau ${wrongChecks} lần dò sai giữa nhiễu sóng, toạ độ cuối cùng cũng lộ diện — quá muộn để ngăn điều tồi tệ nhất.`,
+      stars: starsEarned,
+      actions: [{ label: 'Đến Cánh Cổng Nam Cực', value: true, primary: true }],
+    });
+  }
+
+  return { run, get starsEarned() { return starsEarned; } };
+})();
+
+CHAPTERS.push({
+  key: 'biennnam',
+  eyebrow: 'PHẦN IV',
+  title: 'Bầu Trời Phản Bội',
+  ambient: 'sea',
+  run: Chapter4.run,
+  get starsEarned() { return Chapter4.starsEarned; },
+});
+'use strict';
+/* ============================================================
+   CHƯƠNG V — CÁNH CỔNG NAM CỰC
+   Mai, Sarah, Alex cùng Hùng tiếp cận Cánh Cổng nguyên thủy để
+   giải cứu Kaito khỏi Vùng Ngưỡng.
+
+   CÂU ĐỐ: "Ba Trụ Nạp" — hệ 3 phương trình tuyến tính trên miền
+   nguyên 1..9, giải bằng suy luận đại số thuần tuý (không phải
+   dò). Đã verify: 729 tổ hợp → nghiệm DUY NHẤT sau 3 mệnh đề
+   (729 → 52 → 4 → 1). Giao diện dùng slider thời gian thực với
+   phản hồi trực quan (cột ánh sáng dâng theo giá trị), tạo cảm
+   giác "đồng bộ tần số" kiểu cơ chế event Genshin, nhưng lời
+   giải vẫn đòi hỏi suy luận toán học rõ ràng, không phải dò mù.
+   ============================================================ */
+
+const Chapter5 = (() => {
+  let starsEarned = 3;
+  let wrongChecks = 0;
+  const ANSWER = [1, 4, 7]; // đã verify duy nhất
+  const LABELS = ['Trụ Trái', 'Trụ Giữa', 'Trụ Phải'];
+
+  const CLUES = [
+    'Tổng ánh sáng của ba trụ phải đúng bằng 12 — con số của những tháng đã chờ đợi.',
+    'Trụ Giữa phải sáng hơn Trụ Trái đúng 3 bậc.',
+    'Trụ Phải bằng hai lần Trụ Giữa, trừ đi Trụ Trái.',
+  ];
+
+  function pillarSVG(idx, value) {
+    const pct = value / 9;
+    const h = 140;
+    const fillH = h * pct;
+    return `<svg viewBox="0 0 60 170" style="width:60px;height:170px">
+      <rect x="18" y="10" width="24" height="${h}" rx="10" fill="rgba(255,255,255,.04)" stroke="rgba(232,197,118,.25)" stroke-width="1.5"/>
+      <rect x="18" y="${10 + h - fillH}" width="24" height="${fillH}" rx="10" fill="url(#pillarGrad${idx})"/>
+      <circle cx="30" cy="${10 + h - fillH}" r="5" fill="#fff7e0" opacity=".9">
+        <animate attributeName="r" values="4;6;4" dur="1.4s" repeatCount="indefinite"/>
+      </circle>
+      <text x="30" y="150" text-anchor="middle" font-size="15" fill="var(--gold-0)" font-family="Cormorant Garamond, serif" font-weight="600">${value}</text>
+      <defs><linearGradient id="pillarGrad${idx}" x1="0" y1="1" x2="0" y2="0">
+        <stop offset="0%" stop-color="#c9973f"/><stop offset="100%" stop-color="#fff7e0"/>
+      </linearGradient></defs>
+    </svg>`;
+  }
+
+  async function run() {
+    await say('Hùng', 'Bốn giờ sáng, lạnh cắt da. Đây rồi — Cánh Cổng nguyên thủy. Ba trụ nạp năng lượng bao quanh nó, im lìm chờ đợi.');
+    await say('Sarah', 'Nếu chỉnh sai tần số, cả hệ thống sẽ sập — và cánh cổng sẽ đóng lại vĩnh viễn. Mai, con phải tính chính xác.');
+    await say('Mai', 'Con cảm nhận được nó — một nhịp tim quen thuộc vọng ra từ phía sau cánh cổng. Kaito. Con sẽ không để tần số sai lệch dù chỉ một bậc.');
+
+    const scene = mountScene(`
+      <div class="card-frame">
+        <div style="text-align:center;margin-bottom:10px">
+          <div style="font-family:var(--font-display);font-size:19px;color:var(--gold-1)">Ba Trụ Nạp</div>
+          <div style="font-size:13px;color:var(--paper-dim);margin-top:6px">Chỉnh tần số ba trụ (1–9) để thoả cả ba lời sấm bên dưới.</div>
+        </div>
+        <ol id="ch5clues" style="max-width:480px;margin:14px auto;padding-left:20px;font-size:13px;line-height:1.65;color:var(--paper-dim)"></ol>
+        <div style="display:flex;justify-content:center;gap:30px;margin:22px 0 12px">
+          ${[0, 1, 2].map(i => `
+            <div style="display:flex;flex-direction:column;align-items:center;gap:10px">
+              <div id="pillarHost${i}"></div>
+              <input type="range" min="1" max="9" value="5" id="slider${i}" style="writing-mode:vertical-lr;direction:rtl;width:24px;height:90px;accent-color:var(--amber)">
+              <div style="font-size:11px;color:var(--paper-dim);letter-spacing:.04em">${LABELS[i]}</div>
+            </div>
+          `).join('')}
+        </div>
+        <div style="text-align:center;font-size:13px;color:var(--paper-dim);margin-top:4px">
+          Tổng hiện tại: <b id="sumDisplay" style="color:var(--gold-1)">15</b> / cần <b>12</b>
+        </div>
+        <div style="text-align:center;margin-top:16px">
+          <button class="btn btn-primary" id="ch5check">Đồng bộ trụ nạp</button>
+        </div>
+        <div class="hint-row" id="ch5hint" style="margin-top:10px;min-height:18px"></div>
+      </div>
+    `);
+
+    $('ch5clues').innerHTML = CLUES.map(c => `<li style="margin-bottom:7px">${c}</li>`).join('');
+
+    let values = [5, 5, 5];
+    function renderPillars() {
+      for (let i = 0; i < 3; i++) {
+        $(`pillarHost${i}`).innerHTML = pillarSVG(i, values[i]);
+      }
+      $('sumDisplay').textContent = values.reduce((a, b) => a + b, 0);
+    }
+    renderPillars();
+
+    for (let i = 0; i < 3; i++) {
+      $(`slider${i}`).addEventListener('input', (e) => {
+        values[i] = parseInt(e.target.value, 10);
+        renderPillars();
+        Audio_.sfxTick();
+      });
+    }
+
+    let resolveFn;
+    const donePromise = new Promise(r => resolveFn = r);
+
+    $('ch5check').addEventListener('click', () => {
+      const sum = values[0] + values[1] + values[2];
+      const c1 = sum === 12;
+      const c2 = (values[1] - values[0]) === 3;
+      const c3 = values[2] === (2 * values[1] - values[0]);
+      const allOk = c1 && c2 && c3;
+      const hintEl = $('ch5hint');
+      if (allOk) {
+        Audio_.sfxComplete();
+        toast('Ba trụ đồng bộ hoàn hảo — Cánh Cổng rung chuyển!', 'ok');
+        $('ch5check').disabled = true;
+        setTimeout(() => resolveFn(true), 900);
+      } else {
+        wrongChecks++;
+        Audio_.sfxWrong();
+        const fails = [];
+        if (!c1) fails.push(1);
+        if (!c2) fails.push(2);
+        if (!c3) fails.push(3);
+        hintEl.innerHTML = `<span class="k">sai</span> Lời sấm số ${fails.join(', ')} chưa khớp — thử tính lại.`;
+        toast('Tần số chưa khớp — Cánh Cổng vẫn im lìm.', 'err');
+      }
+    });
+
+    await donePromise;
+
+    if (wrongChecks >= 4) starsEarned = 1;
+    else if (wrongChecks >= 2) starsEarned = 2;
+
+    Ambient.setMode('pole');
+    await say('Mai', 'Ánh sáng tím bùng lên từ tâm Cánh Cổng — mạnh mẽ hơn bất cứ điều gì cô từng thấy. Một tiếng gọi yếu ớt nhưng chắc chắn vọng đến. "Mai..."', [{ label: 'KAITO!', value: true, primary: true }]);
+    await say('Mai', 'Không chút do dự, cô lao thẳng về phía ánh sáng — biến mất khỏi tầm mắt kinh hoàng của tất cả.');
+    await say('Kaito', 'Trong khoảnh khắc chuyển tiếp không thể mô tả, Mai tìm thấy anh — run rẩy nhưng còn sống — giữa Vùng Ngưỡng. Cô nắm lấy tay anh, và cả hai cùng bước ngược về ánh sáng.');
+
+    await modal({
+      kicker: 'PHẦN V · TRỞ VỀ',
+      title: 'Cánh Cổng Nam Cực — Hoàn Thành',
+      text: wrongChecks === 0
+        ? 'Mai tính đúng tần số ba trụ chỉ trong một lần thử — như thể chính trái tim cô đã biết trước đáp án.'
+        : `Sau ${wrongChecks} lần đồng bộ thất bại, ba trụ cuối cùng cũng cộng hưởng đúng nhịp. Kaito đã trở về.`,
+      stars: starsEarned,
+      actions: [{ label: 'Trở về Gò Sen', value: true, primary: true }],
+    });
+  }
+
+  return { run, get starsEarned() { return starsEarned; } };
+})();
+
+CHAPTERS.push({
+  key: 'canhcong',
+  eyebrow: 'PHẦN V',
+  title: 'Cánh Cổng Nam Cực',
+  ambient: 'pole',
+  run: Chapter5.run,
+  get starsEarned() { return Chapter5.starsEarned; },
+});
