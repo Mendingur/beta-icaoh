@@ -801,8 +801,8 @@ const Chapter2 = (() => {
   }
 
   function render(placement) {
-    const cx = 170, cy = 170, R = 122;
-    let svg = `<svg viewBox="0 0 340 340" style="width:100%;max-width:320px;height:auto">`;
+    const cx = 170, cy = 170, R = 118;
+    let svg = `<svg viewBox="0 0 340 340" style="width:100%;max-width:300px;min-width:240px;height:auto;touch-action:manipulation">`;
     const pts8 = [];
     for (let i = 0; i < 8; i++) pts8.push(octagonPoint(i, cx, cy, R));
     svg += `<polygon points="${pts8.map(p => `${p.x},${p.y}`).join(' ')}" fill="rgba(232,197,118,.04)" stroke="rgba(232,197,118,.28)" stroke-width="1.5"/>`;
@@ -813,10 +813,13 @@ const Chapter2 = (() => {
       const filled = placement[i];
       const isAnchor = i === 0;
       svg += `<g class="slot-target" data-slot="${i}" style="cursor:${isAnchor ? 'default' : 'pointer'}">`;
-      svg += `<circle cx="${p.x}" cy="${p.y}" r="25" fill="${filled ? 'rgba(232,197,118,.16)' : 'rgba(255,255,255,.03)'}" stroke="${isAnchor ? 'var(--amber)' : `rgba(232,197,118,${filled ? '.5' : '.22'})`}" stroke-width="${isAnchor ? '2' : '1.5'}"/>`;
+      // Hitbox 40 đơn vị viewBox — đã tính toán để không chồng lấn giữa các slot liền kề
+      // (khoảng cách tâm-tâm ~90 đơn vị) và vẫn đạt tối thiểu 44px thực ở min-width 240px.
+      svg += `<circle cx="${p.x}" cy="${p.y}" r="40" fill="transparent" style="pointer-events:${isAnchor ? 'none' : 'all'}"/>`;
+      svg += `<circle cx="${p.x}" cy="${p.y}" r="27" fill="${filled ? 'rgba(232,197,118,.16)' : 'rgba(255,255,255,.03)'}" stroke="${isAnchor ? 'var(--amber)' : `rgba(232,197,118,${filled ? '.5' : '.22'})`}" stroke-width="${isAnchor ? '2' : '1.5'}" style="pointer-events:none"/>`;
       if (filled) {
         const sym = SYMBOLS.find(s => s.id === filled);
-        svg += `<text x="${p.x}" y="${p.y + 7}" text-anchor="middle" font-size="22" fill="var(--gold-0)" style="pointer-events:none">${sym.glyph}</text>`;
+        svg += `<text x="${p.x}" y="${p.y + 8}" text-anchor="middle" font-size="24" fill="var(--gold-0)" style="pointer-events:none">${sym.glyph}</text>`;
       }
       svg += `</g>`;
     }
@@ -866,8 +869,9 @@ const Chapter2 = (() => {
         const used_ = used.has(id);
         const chip = document.createElement('button');
         chip.className = 'btn';
-        chip.style.padding = '8px 10px';
-        chip.style.fontSize = '13px';
+        chip.style.padding = '12px 14px';
+        chip.style.fontSize = '14px';
+        chip.style.minHeight = '46px';
         chip.style.opacity = used_ ? '.32' : '1';
         chip.disabled = used_;
         chip.innerHTML = `<span style="font-size:16px;margin-right:6px">${sym.glyph}</span>${sym.name}`;
@@ -1015,21 +1019,31 @@ const Chapter3 = (() => {
   }
 
   function render(placement, selected) {
-    let html = `<div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:6px 0 4px">`;
+    // Tính width động: 4 slot phải luôn nằm 1 hàng để giữ đúng ý nghĩa
+    // "thứ tự tuyến tính dọc chiến hào" — wrap 2x2 sẽ làm mất trực quan
+    // về khoảng cách/thứ tự vốn là cốt lõi của câu đố này.
+    const vw = Math.min(window.innerWidth, 760);
+    const gap = vw < 420 ? 6 : 10;
+    const available = vw - 64; // trừ padding container ước lượng
+    const slotW = Math.max(64, Math.min(120, Math.floor((available - gap * 3) / 4)));
+    const minH = slotW < 90 ? 108 : 130;
+    const compact = slotW < 90;
+
+    let html = `<div style="display:flex;gap:${gap}px;justify-content:center;flex-wrap:nowrap;margin:6px 0 4px">`;
     for (let i = 0; i < 4; i++) {
       const occ = placement[i];
       const person = occ ? PEOPLE.find(p => p.id === occ) : null;
       html += `<div class="post-slot" data-post="${i}" style="
-        width:120px;min-height:130px;border-radius:14px;cursor:pointer;
-        display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+        width:${slotW}px;min-height:${minH}px;border-radius:14px;cursor:pointer;
+        display:flex;flex-direction:column;align-items:center;justify-content:center;gap:${compact ? 4 : 8}px;
         background:${person ? 'rgba(232,197,118,.1)' : 'rgba(255,255,255,.03)'};
         border:1.5px dashed ${person ? 'rgba(232,197,118,.4)' : 'rgba(232,197,118,.2)'};
-        transition:all .2s;padding:12px 8px;text-align:center;">
-        <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold-2)">${i === 0 ? '← gần làng' : i === 3 ? 'xa nhất →' : 'vị trí ' + (i+1)}</div>
-        <div style="font-size:11px;color:var(--paper-dim);margin-bottom:2px">${POST_LABELS[i]}</div>
+        transition:all .2s;padding:${compact ? '8px 4px' : '12px 8px'};text-align:center;touch-action:manipulation;">
+        <div style="font-size:${compact ? 8 : 10}px;letter-spacing:.08em;text-transform:uppercase;color:var(--gold-2)">${i === 0 ? '← gần làng' : i === 3 ? 'xa nhất →' : 'vị trí ' + (i+1)}</div>
+        <div style="font-size:${compact ? 9 : 11}px;color:var(--paper-dim);margin-bottom:2px;line-height:1.2">${POST_LABELS[i]}</div>
         ${person
-          ? `<div style="font-size:28px">${person.glyph}</div><div style="font-family:var(--font-display);font-size:15px;color:var(--gold-0)">${person.name}</div>`
-          : `<div style="font-size:22px;color:rgba(232,197,118,.3)">+</div>`
+          ? `<div style="font-size:${compact ? 22 : 28}px">${person.glyph}</div><div style="font-family:var(--font-display);font-size:${compact ? 13 : 15}px;color:var(--gold-0)">${person.name}</div>`
+          : `<div style="font-size:${compact ? 18 : 22}px;color:rgba(232,197,118,.3)">+</div>`
         }
       </div>`;
     }
@@ -1074,7 +1088,9 @@ const Chapter3 = (() => {
         const used_ = used.has(p.id);
         const chip = document.createElement('button');
         chip.className = 'btn';
-        chip.style.padding = '10px 14px';
+        chip.style.padding = '13px 18px';
+        chip.style.minHeight = '46px';
+        chip.style.fontSize = '14px';
         chip.style.opacity = used_ ? '.32' : '1';
         chip.disabled = used_;
         chip.innerHTML = `<span style="font-size:16px;margin-right:6px">${p.glyph}</span>${p.name}`;
@@ -1204,7 +1220,15 @@ const Chapter4 = (() => {
   ];
 
   function gridHTML(selected, revealResult) {
-    let html = `<div style="display:inline-grid;grid-template-columns:28px repeat(5,52px);grid-auto-rows:52px;gap:4px;margin:0 auto">`;
+    // Kích thước ô responsive: tính theo viewport thực tại thời điểm render,
+    // đảm bảo luôn đạt tối thiểu 44px (chuẩn touch target), co giãn hợp lý
+    // trên màn hình lớn hơn thay vì cố định 52px gây khó bấm trên máy nhỏ.
+    const vw = window.innerWidth;
+    const cell = vw < 380 ? 46 : vw < 640 ? 50 : 56;
+    const labelCol = Math.round(cell * 0.5);
+    const gap = vw < 380 ? 5 : 6;
+
+    let html = `<div style="display:inline-grid;grid-template-columns:${labelCol}px repeat(5,${cell}px);grid-auto-rows:${cell}px;gap:${gap}px;margin:0 auto;touch-action:manipulation">`;
     html += `<div></div>`;
     COLS.forEach(c => { html += `<div style="display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--gold-2);letter-spacing:.06em">${c}</div>`; });
     for (let r = 0; r < 5; r++) {
@@ -1224,9 +1248,10 @@ const Chapter4 = (() => {
           border = revealResult === 'ok' ? 'var(--ok)' : 'var(--danger)';
         }
         html += `<div class="grid-cell" data-col="${c}" data-row="${r}" style="
+          width:${cell}px;height:${cell}px;
           border-radius:8px;border:1.5px solid ${border};background:${bg};
-          display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;
-          transition:all .15s;">${content}</div>`;
+          display:flex;align-items:center;justify-content:center;font-size:${cell > 48 ? 17 : 15}px;cursor:pointer;
+          transition:all .15s;touch-action:manipulation;">${content}</div>`;
       }
     }
     html += `</div>`;
@@ -1389,12 +1414,19 @@ const Chapter5 = (() => {
           <div style="font-size:13px;color:var(--paper-dim);margin-top:6px">Chỉnh tần số ba trụ (1–9) để thoả cả ba lời sấm bên dưới.</div>
         </div>
         <ol id="ch5clues" style="max-width:480px;margin:14px auto;padding-left:20px;font-size:13px;line-height:1.65;color:var(--paper-dim)"></ol>
-        <div style="display:flex;justify-content:center;gap:30px;margin:22px 0 12px">
+        <div style="display:flex;justify-content:center;gap:18px;margin:22px 0 12px;flex-wrap:wrap">
           ${[0, 1, 2].map(i => `
             <div style="display:flex;flex-direction:column;align-items:center;gap:10px">
+              <button class="pillar-btn" data-i="${i}" data-dir="1" aria-label="Tăng ${LABELS[i]}" style="
+                width:44px;height:44px;border-radius:10px;border:1px solid var(--line-strong);
+                background:rgba(232,197,118,.08);color:var(--gold-1);font-size:20px;font-weight:700;
+                cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;">+</button>
               <div id="pillarHost${i}"></div>
-              <input type="range" min="1" max="9" value="5" id="slider${i}" style="writing-mode:vertical-lr;direction:rtl;width:24px;height:90px;accent-color:var(--amber)">
-              <div style="font-size:11px;color:var(--paper-dim);letter-spacing:.04em">${LABELS[i]}</div>
+              <button class="pillar-btn" data-i="${i}" data-dir="-1" aria-label="Giảm ${LABELS[i]}" style="
+                width:44px;height:44px;border-radius:10px;border:1px solid var(--line-strong);
+                background:rgba(232,197,118,.08);color:var(--gold-1);font-size:20px;font-weight:700;
+                cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;">−</button>
+              <div style="font-size:11px;color:var(--paper-dim);letter-spacing:.04em;text-align:center">${LABELS[i]}</div>
             </div>
           `).join('')}
         </div>
@@ -1419,13 +1451,15 @@ const Chapter5 = (() => {
     }
     renderPillars();
 
-    for (let i = 0; i < 3; i++) {
-      $(`slider${i}`).addEventListener('input', (e) => {
-        values[i] = parseInt(e.target.value, 10);
+    scene.querySelectorAll('.pillar-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const i = parseInt(btn.getAttribute('data-i'), 10);
+        const dir = parseInt(btn.getAttribute('data-dir'), 10);
+        values[i] = Math.max(1, Math.min(9, values[i] + dir));
         renderPillars();
         Audio_.sfxTick();
       });
-    }
+    });
 
     let resolveFn;
     const donePromise = new Promise(r => resolveFn = r);

@@ -118,7 +118,7 @@ body{
 .pip.active{background:var(--amber);width:20px;border-radius:4px;box-shadow:0 0 10px rgba(255,157,77,.6)}
 
 .icon-btn{
-  width:38px;height:38px;border-radius:50%;
+  width:44px;height:44px;border-radius:50%;
   border:1px solid var(--line-strong);
   background:rgba(20,20,29,.8);
   color:var(--gold-1);
@@ -126,6 +126,8 @@ body{
   cursor:pointer;
   font-size:15px;
   transition:transform .2s, border-color .2s, background .2s;
+  touch-action:manipulation;
+  -webkit-tap-highlight-color:transparent;
 }
 .icon-btn:hover{border-color:var(--gold-1);background:rgba(28,28,40,.92);transform:translateY(-1px)}
 .icon-btn:active{transform:translateY(0) scale(.94)}
@@ -210,16 +212,19 @@ body{
 .btn{
   font-family:var(--font-ui);
   font-size:13.5px;font-weight:600;letter-spacing:.03em;
-  padding:11px 22px;
+  padding:12px 22px;
+  min-height:44px;
   border-radius:999px;
   border:1px solid var(--line-strong);
   background:rgba(255,255,255,.03);
   color:var(--paper);
   cursor:pointer;
   transition:transform .15s, background .2s, border-color .2s, box-shadow .2s;
+  touch-action:manipulation;
+  -webkit-tap-highlight-color:transparent;
 }
 .btn:hover{border-color:var(--gold-1);background:rgba(232,197,118,.08);transform:translateY(-1px)}
-.btn:active{transform:translateY(0) scale(.97)}
+.btn:active{transform:translateY(0) scale(.96)}
 .btn-primary{
   background:linear-gradient(180deg, var(--gold-0), var(--gold-2));
   color:#241705;
@@ -328,10 +333,26 @@ body{
   .brandmark span:last-child{display:none}
   .scene{width:96vw;gap:14px}
   .dialogue-card{padding:16px 18px}
+  .card-frame{padding:16px 14px}
+}
+
+/* Chuẩn điểm chạm tối thiểu 44px cho mọi phần tử tương tác trong các
+   câu đố (chip lựa chọn, slot bát giác, vị trí chiến hào, ô lưới toạ độ,
+   slider). Áp dụng rộng tới 768px để cả các máy tablet/phone lớn cũng
+   được hưởng lợi, không chỉ điện thoại nhỏ. */
+@media (max-width:768px){
+  .btn{padding:13px 20px;font-size:14px}
+  #symbolTray .btn, #peopleTray .btn{
+    padding:13px 16px !important;
+    font-size:14px !important;
+    min-width:80px;
+  }
 }
 
 ::selection{background:rgba(232,197,118,.3)}
 button{font-family:inherit}
+.pillar-btn:active{transform:scale(.9);background:rgba(232,197,118,.18) !important}
+.pillar-btn:hover{border-color:var(--gold-1) !important}
 </style>
 </head>
 <body>
