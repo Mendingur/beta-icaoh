@@ -838,14 +838,16 @@ const Chapter2 = (() => {
           <div style="font-family:var(--font-display);font-size:19px;color:var(--gold-1)">Sấm Truyền Liên Hoa</div>
           <div style="font-size:13px;color:var(--paper-dim);margin-top:6px">Ánh Sáng đã cố định ở đỉnh. Xếp 7 biểu tượng còn lại dựa trên 5 lời sấm.</div>
         </div>
-        <div style="display:flex;gap:22px;flex-wrap:wrap;justify-content:center;align-items:flex-start">
-          <div id="octagonHost" style="flex:none"></div>
-          <div style="flex:1;min-width:220px;max-width:280px">
-            <div style="font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold-2);margin-bottom:8px">Lời Sấm</div>
-            <ol id="clueList" style="margin:0;padding-left:18px;font-size:13px;line-height:1.65;color:var(--paper-dim)"></ol>
-            <div style="font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold-2);margin:16px 0 8px">Biểu Tượng Còn Lại</div>
-            <div id="symbolTray" style="display:flex;flex-wrap:wrap;gap:8px"></div>
-          </div>
+        <div style="display:flex;justify-content:center;margin-bottom:16px">
+          <div id="octagonHost"></div>
+        </div>
+        <div style="max-width:420px;margin:0 auto">
+          <div style="font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold-2);margin-bottom:8px;text-align:center">Lời Sấm</div>
+          <ol id="clueList" style="margin:0 0 16px;padding-left:18px;font-size:13px;line-height:1.65;color:var(--paper-dim)"></ol>
+        </div>
+        <div style="width:100%">
+          <div style="font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold-2);margin:0 0 10px;text-align:center">Biểu Tượng Còn Lại — chạm để chọn</div>
+          <div id="symbolTray" style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center"></div>
         </div>
         <div style="text-align:center;margin-top:18px">
           <button class="btn btn-primary" id="checkBtn">Kiểm chứng lời sấm</button>
