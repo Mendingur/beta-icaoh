@@ -2,9 +2,9 @@
 <html lang="vi">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>Khúc Ca Hy Vọng — Ánh Sáng Của Người Gieo Hạt</title>
-<meta name="description" content="Event game lấy cảm hứng từ Quyển I: Khúc Ca Hy Vọng — The Sower's Cycle.">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Khúc Ca Hy Vọng — Hành Trình Người Gieo Hạt</title>
+<meta name="description" content="Event tương tác lấy cảm hứng từ Quyển I: Khúc Ca Hy Vọng — The Sower's Cycle.">
 <style>
 :root{
   --ink-0:#07070a;
@@ -19,7 +19,6 @@
   --amber:#ff9d4d;
   --ember:#ff6a3d;
   --violet:#8b6bd6;
-  --violet-deep:#4a3785;
   --teal:#4fd6c4;
   --paper:#efe6d3;
   --paper-dim:rgba(239,230,211,.62);
@@ -27,15 +26,8 @@
   --ok:#8fe3a6;
   --font-display:'Cormorant Garamond','Songti SC',serif;
   --font-vn:'Be Vietnam Pro','Inter',system-ui,sans-serif;
-  --font-ui:'Inter',system-ui,sans-serif;
-  --radius-lg:22px;
-  --radius-md:14px;
-  --radius-sm:8px;
-  --shadow-deep:0 30px 80px -20px rgba(0,0,0,.7);
-}
-@font-face{
-  font-family:'Cormorant Garamond';
-  src:local('Cormorant Garamond');
+  --safe-top:env(safe-area-inset-top,0px);
+  --safe-bottom:env(safe-area-inset-bottom,0px);
 }
 *,*::before,*::after{box-sizing:border-box}
 html,body{height:100%}
@@ -46,405 +38,105 @@ body{
   font-family:var(--font-vn);
   overflow:hidden;
   -webkit-font-smoothing:antialiased;
-  text-rendering:optimizeLegibility;
+  overscroll-behavior:none;
 }
+button{font-family:inherit;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 #app{position:fixed;inset:0;overflow:hidden}
+::selection{background:rgba(232,197,118,.3)}
 
-/* ---------- background atmosphere ---------- */
-#bgcanvas{position:absolute;inset:0;width:100%;height:100%;display:block}
-.vignette{
-  position:absolute;inset:0;pointer-events:none;
-  background:
-    radial-gradient(ellipse 120% 90% at 50% 20%, transparent 0%, transparent 40%, rgba(4,4,7,.55) 100%),
-    radial-gradient(ellipse 140% 100% at 50% 100%, rgba(4,4,7,.75) 0%, transparent 55%);
-  z-index:5;
-}
-.grain{
-  position:absolute;inset:0;pointer-events:none;opacity:.05;mix-blend-mode:overlay;z-index:6;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-}
-
-/* ---------- layout shell ---------- */
-.hud-top{
-  position:absolute;top:0;left:0;right:0;z-index:40;
-  display:flex;align-items:center;justify-content:space-between;
-  padding:16px 22px;
-  pointer-events:none;
-}
-.hud-top>*{pointer-events:auto}
-.brandmark{
-  display:flex;align-items:center;gap:10px;
-  font-family:var(--font-display);
-  letter-spacing:.14em;
-  font-size:14px;
-  color:var(--gold-1);
-  text-transform:uppercase;
-  opacity:.9;
-}
-.brandmark .glyph{
-  width:22px;height:22px;
-  filter:drop-shadow(0 0 6px rgba(232,197,118,.55));
-}
-.timer-wrap{
-  display:flex;align-items:center;gap:10px;
-  background:linear-gradient(180deg, rgba(20,20,29,.86), rgba(13,13,19,.86));
-  border:1px solid var(--line-strong);
-  border-radius:999px;
-  padding:7px 16px 7px 10px;
-  box-shadow:var(--shadow-deep), inset 0 1px 0 rgba(255,255,255,.05);
-}
-.timer-ring{width:26px;height:26px;flex:none}
-.timer-num{
-  font-variant-numeric:tabular-nums;
-  font-family:var(--font-ui);
-  font-weight:600;
-  font-size:15px;
-  letter-spacing:.02em;
-  color:var(--gold-0);
-  min-width:44px;
-}
-.timer-wrap.warn .timer-num{color:var(--ember);animation:pulse-warn 1s infinite}
-@keyframes pulse-warn{0%,100%{opacity:1}50%{opacity:.55}}
-
-.chapter-pip{
-  display:flex;gap:6px;align-items:center;
-}
-.pip{
-  width:7px;height:7px;border-radius:50%;
-  background:rgba(232,197,118,.22);
-  transition:all .4s cubic-bezier(.2,.8,.2,1);
-}
-.pip.done{background:var(--gold-1);box-shadow:0 0 8px rgba(232,197,118,.7)}
-.pip.active{background:var(--amber);width:20px;border-radius:4px;box-shadow:0 0 10px rgba(255,157,77,.6)}
-
-.icon-btn{
-  width:44px;height:44px;border-radius:50%;
-  border:1px solid var(--line-strong);
-  background:rgba(20,20,29,.8);
-  color:var(--gold-1);
-  display:grid;place-items:center;
-  cursor:pointer;
-  font-size:15px;
-  transition:transform .2s, border-color .2s, background .2s;
-  touch-action:manipulation;
-  -webkit-tap-highlight-color:transparent;
-}
-.icon-btn:hover{border-color:var(--gold-1);background:rgba(28,28,40,.92);transform:translateY(-1px)}
-.icon-btn:active{transform:translateY(0) scale(.94)}
-
-/* ---------- stage title banner ---------- */
-.stage-banner{
-  position:absolute;top:0;left:0;right:0;z-index:35;
-  display:flex;flex-direction:column;align-items:center;
-  padding-top:64px;
-  pointer-events:none;
-  opacity:0;
-  transform:translateY(-8px);
-  transition:opacity .8s ease, transform .8s ease;
-}
-.stage-banner.show{opacity:1;transform:translateY(0)}
-.stage-eyebrow{
-  font-family:var(--font-ui);
-  font-size:11px;letter-spacing:.32em;text-transform:uppercase;
-  color:var(--gold-2);margin-bottom:6px;
-}
-.stage-title{
-  font-family:var(--font-display);
-  font-size:clamp(28px,4.2vw,44px);
-  font-weight:600;
-  color:var(--gold-0);
-  text-shadow:0 0 30px rgba(232,197,118,.35), 0 4px 24px rgba(0,0,0,.6);
-  letter-spacing:.02em;
-}
-.stage-title::before,.stage-title::after{content:"✦";font-size:.4em;color:var(--gold-2);vertical-align:middle;margin:0 14px;opacity:.7}
-
-/* ---------- game stage container ---------- */
-#stage-root{
-  position:absolute;inset:0;z-index:10;
-  display:grid;place-items:center;
-}
-.scene{
-  position:relative;
-  width:min(94vw,760px);
-  max-height:86vh;
-  display:flex;flex-direction:column;align-items:center;
-  gap:18px;
-  opacity:0;
-  transform:scale(.97);
-  transition:opacity .5s ease, transform .5s ease;
-}
-.scene.enter{opacity:1;transform:scale(1)}
-
-/* ---------- narrative dialogue box ---------- */
-.dialogue{
-  position:absolute;bottom:0;left:0;right:0;z-index:30;
-  display:flex;justify-content:center;
-  padding:0 20px 22px;
-  pointer-events:none;
-}
-.dialogue-card{
-  pointer-events:auto;
-  width:min(94vw,640px);
-  background:linear-gradient(180deg, rgba(18,18,26,.92), rgba(10,10,15,.96));
-  border:1px solid var(--line-strong);
-  border-radius:var(--radius-lg);
-  padding:20px 24px;
-  box-shadow:var(--shadow-deep);
-  opacity:0;transform:translateY(16px);
-  transition:opacity .5s ease, transform .5s ease;
-}
-.dialogue-card.show{opacity:1;transform:translateY(0)}
-.dialogue-speaker{
-  font-family:var(--font-display);
-  font-size:15px;letter-spacing:.08em;
-  color:var(--gold-1);
-  display:flex;align-items:center;gap:8px;
-  margin-bottom:8px;
-}
-.dialogue-speaker .dot{width:6px;height:6px;border-radius:50%;background:var(--amber);box-shadow:0 0 6px var(--amber)}
-.dialogue-text{
-  font-size:15.5px;line-height:1.6;
-  color:var(--paper-dim);
-}
-.dialogue-actions{display:flex;justify-content:flex-end;margin-top:14px;gap:10px}
-
-/* ---------- buttons ---------- */
+/* ============ shared atoms ============ */
 .btn{
-  font-family:var(--font-ui);
-  font-size:13.5px;font-weight:600;letter-spacing:.03em;
-  padding:12px 22px;
-  min-height:44px;
-  border-radius:999px;
-  border:1px solid var(--line-strong);
-  background:rgba(255,255,255,.03);
-  color:var(--paper);
-  cursor:pointer;
-  transition:transform .15s, background .2s, border-color .2s, box-shadow .2s;
-  touch-action:manipulation;
-  -webkit-tap-highlight-color:transparent;
+  font-size:14px;font-weight:600;letter-spacing:.02em;
+  padding:13px 24px;min-height:48px;
+  border-radius:999px;border:1px solid var(--line-strong);
+  background:rgba(255,255,255,.03);color:var(--paper);
+  cursor:pointer;transition:transform .15s, background .2s;
+  touch-action:manipulation;-webkit-tap-highlight-color:transparent;
 }
-.btn:hover{border-color:var(--gold-1);background:rgba(232,197,118,.08);transform:translateY(-1px)}
-.btn:active{transform:translateY(0) scale(.96)}
+.btn:active{transform:scale(.95)}
 .btn-primary{
   background:linear-gradient(180deg, var(--gold-0), var(--gold-2));
-  color:#241705;
-  border:none;
+  color:#241705;border:none;
   box-shadow:0 8px 24px -6px rgba(201,151,63,.55);
 }
-.btn-primary:hover{box-shadow:0 10px 30px -6px rgba(201,151,63,.75);filter:brightness(1.04)}
-.btn-primary:disabled{
-  opacity:.4;cursor:not-allowed;filter:grayscale(.4);
-  box-shadow:none;transform:none;
-}
-.btn-ghost{background:transparent;border-color:var(--line)}
+.btn-primary:disabled{opacity:.4;filter:grayscale(.4);box-shadow:none}
+.btn-ghost{background:transparent}
 
-/* ---------- toast ---------- */
+.icon-btn{
+  width:46px;height:46px;border-radius:50%;
+  border:1px solid var(--line-strong);background:rgba(20,20,29,.85);
+  color:var(--gold-1);display:grid;place-items:center;font-size:16px;cursor:pointer;
+}
+.icon-btn:active{transform:scale(.92)}
+
 .toast{
-  position:absolute;top:88px;left:50%;
-  transform:translate(-50%,-14px);
-  z-index:60;
-  background:rgba(14,14,20,.94);
-  border:1px solid var(--line-strong);
-  color:var(--gold-0);
-  padding:10px 20px;border-radius:999px;
-  font-size:13.5px;letter-spacing:.02em;
-  opacity:0;pointer-events:none;
-  transition:opacity .35s ease, transform .35s ease;
-  box-shadow:var(--shadow-deep);
-  white-space:nowrap;
+  position:fixed;top:calc(var(--safe-top) + 14px);left:50%;transform:translate(-50%,-14px);
+  z-index:200;background:rgba(14,14,20,.95);border:1px solid var(--line-strong);
+  color:var(--gold-0);padding:11px 20px;border-radius:999px;font-size:13.5px;
+  opacity:0;pointer-events:none;transition:opacity .35s, transform .35s;
+  box-shadow:0 20px 50px -12px rgba(0,0,0,.7);white-space:nowrap;max-width:88vw;overflow:hidden;text-overflow:ellipsis;
 }
 .toast.show{opacity:1;transform:translate(-50%,0)}
 .toast.err{border-color:rgba(255,92,92,.5);color:#ffb3b3}
 .toast.ok{border-color:rgba(143,227,166,.5);color:var(--ok)}
 
-/* ---------- modal (chapter intro / outro) ---------- */
-.modal{
-  position:fixed;inset:0;z-index:100;
-  display:grid;place-items:center;
-  background:rgba(4,4,6,.78);
-  backdrop-filter:blur(6px);
-  opacity:0;pointer-events:none;
-  transition:opacity .5s ease;
-}
+/* ============ screens ============ */
+.screen{position:absolute;inset:0;display:flex;flex-direction:column;opacity:0;pointer-events:none;transition:opacity .4s ease}
+.screen.active{opacity:1;pointer-events:auto}
+
+/* ============ modal ============ */
+.modal{position:fixed;inset:0;z-index:300;display:grid;place-items:center;background:rgba(4,4,6,.82);backdrop-filter:blur(6px);opacity:0;pointer-events:none;transition:opacity .4s;padding:20px}
 .modal.show{opacity:1;pointer-events:auto}
 .modal-card{
-  width:min(92vw,520px);
-  background:linear-gradient(165deg, rgba(24,22,30,.97), rgba(11,10,15,.98));
-  border:1px solid var(--line-strong);
-  border-radius:24px;
-  padding:36px 32px 30px;
-  text-align:center;
-  box-shadow:0 40px 100px -20px rgba(0,0,0,.85);
-  transform:translateY(18px) scale(.97);
-  transition:transform .5s cubic-bezier(.2,.9,.25,1);
+  width:min(92vw,480px);max-height:86vh;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  background:linear-gradient(165deg, rgba(24,22,30,.98), rgba(11,10,15,.99));
+  border:1px solid var(--line-strong);border-radius:22px;padding:30px 26px 26px;
+  text-align:center;box-shadow:0 40px 100px -20px rgba(0,0,0,.85);
+  transform:translateY(16px) scale(.97);transition:transform .45s cubic-bezier(.2,.9,.25,1);
   position:relative;
-  overflow:hidden;
 }
 .modal.show .modal-card{transform:translateY(0) scale(1)}
-.modal-card::before{
-  content:"";position:absolute;inset:0;
-  background:radial-gradient(circle at 50% -10%, rgba(232,197,118,.16), transparent 60%);
-  pointer-events:none;
-}
-.modal-kicker{
-  font-size:11px;letter-spacing:.3em;text-transform:uppercase;
-  color:var(--gold-2);margin-bottom:10px;
-}
-.modal-title{
-  font-family:var(--font-display);
-  font-size:30px;color:var(--gold-0);margin:0 0 14px;
-  line-height:1.2;
-}
-.modal-text{
-  font-size:14.5px;line-height:1.7;color:var(--paper-dim);
-  margin:0 0 22px;
-  white-space:pre-line;
-}
-.modal-actions{display:flex;justify-content:center;gap:12px}
+.modal-kicker{font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--gold-2);margin-bottom:10px}
+.modal-title{font-family:var(--font-display);font-size:27px;color:var(--gold-0);margin:0 0 12px;line-height:1.25}
+.modal-text{font-size:14px;line-height:1.7;color:var(--paper-dim);margin:0 0 20px;white-space:pre-line;text-align:left}
+.modal-actions{display:flex;flex-direction:column;gap:10px}
+.modal-actions .btn{width:100%}
 
-/* ---------- end summary ---------- */
-.stars-row{display:flex;justify-content:center;gap:10px;margin:18px 0 6px}
-.star-slot{width:38px;height:38px;position:relative}
+.stars-row{display:flex;justify-content:center;gap:8px;margin:14px 0}
+.star-slot{width:32px;height:32px}
 .star-slot svg{width:100%;height:100%;filter:drop-shadow(0 0 8px rgba(232,197,118,.5))}
 
-/* ---------- generic puzzle atoms shared across chapters ---------- */
-.card-frame{
-  background:linear-gradient(165deg, rgba(24,23,31,.86), rgba(12,11,16,.9));
-  border:1px solid var(--line);
-  border-radius:var(--radius-lg);
-  box-shadow:var(--shadow-deep), inset 0 1px 0 rgba(255,255,255,.04);
-  width:100%;
-  display:flex;
-  flex-direction:column;
-  max-height:min(72vh, 640px);
-  overflow:hidden;
+/* ============ dialogue ============ */
+.dialogue{position:fixed;left:0;right:0;bottom:0;z-index:150;display:flex;justify-content:center;padding:0 14px calc(var(--safe-bottom) + 16px);pointer-events:none}
+.dialogue-card{
+  pointer-events:auto;width:min(94vw,600px);
+  background:linear-gradient(180deg, rgba(18,18,26,.95), rgba(9,9,14,.98));
+  border:1px solid var(--line-strong);border-radius:20px;padding:18px 20px;
+  box-shadow:0 30px 80px -20px rgba(0,0,0,.75);
+  opacity:0;transform:translateY(20px);transition:opacity .4s, transform .4s;
 }
-/* Vùng nội dung câu đố cuộn được — mọi phần thay đổi theo từng chương
-   (hình vẽ, mệnh đề, lựa chọn) nằm trong đây, có thể dài hơn màn hình. */
-.card-scroll{
-  padding:22px 22px 14px;
-  overflow-y:auto;
-  overflow-x:hidden;
-  -webkit-overflow-scrolling:touch;
-  flex:1 1 auto;
-  min-height:0;
-}
-.card-scroll::-webkit-scrollbar{width:5px}
-.card-scroll::-webkit-scrollbar-thumb{background:rgba(232,197,118,.3);border-radius:99px}
-.card-scroll::-webkit-scrollbar-track{background:transparent}
-/* Vùng hành động chính (nút "Kiểm chứng", "Xác nhận"...) LUÔN cố định,
-   không cuộn theo nội dung — người chơi luôn thấy và bấm được ngay,
-   bất kể đang cuộn tới đâu trong câu đố. */
-.card-actions{
-  flex:none;
-  padding:14px 22px 20px;
-  border-top:1px solid rgba(232,197,118,.12);
-  background:linear-gradient(180deg, rgba(16,15,21,.4), rgba(10,9,13,.6));
-  text-align:center;
-}
-/* Gợi ý còn nội dung phía trên có thể cuộn */
-.card-frame.scrollable .card-scroll{
-  mask-image:linear-gradient(to bottom, black calc(100% - 22px), transparent 100%);
-  -webkit-mask-image:linear-gradient(to bottom, black calc(100% - 22px), transparent 100%);
-}
-.scroll-hint{
-  display:none;
-  align-items:center;justify-content:center;gap:6px;
-  font-size:11px;color:var(--gold-2);letter-spacing:.04em;
-  padding-bottom:6px;
-}
-.card-frame.scrollable .scroll-hint{display:flex}
-.scroll-hint svg{width:12px;height:12px;animation:bob 1.4s ease-in-out infinite}
-@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(3px)}}
-.hint-row{
-  display:flex;align-items:center;gap:8px;justify-content:center;
-  font-size:12.5px;color:var(--paper-dim);letter-spacing:.02em;
-  margin-top:2px;
-}
-.hint-row .k{
-  border:1px solid var(--line-strong);border-radius:6px;
-  padding:1px 7px;font-family:var(--font-ui);font-size:11px;color:var(--gold-1);
-}
+.dialogue-card.show{opacity:1;transform:translateY(0)}
+.dialogue-speaker{font-family:var(--font-display);font-size:15px;color:var(--gold-1);display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.dialogue-speaker .dot{width:6px;height:6px;border-radius:50%;background:var(--amber);box-shadow:0 0 6px var(--amber)}
+.dialogue-text{font-size:14.5px;line-height:1.6;color:var(--paper-dim)}
+.dialogue-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:14px}
 
-/* ---------- responsive ---------- */
-@media (max-width:640px){
-  .hud-top{padding:12px 14px}
-  .stage-banner{padding-top:52px}
-  .brandmark span:last-child{display:none}
-  .scene{width:96vw;gap:14px}
-  .dialogue-card{padding:16px 18px}
-  .card-frame{padding:16px 14px}
-}
-
-/* Chuẩn điểm chạm tối thiểu 44px cho mọi phần tử tương tác trong các
-   câu đố (chip lựa chọn, slot bát giác, vị trí chiến hào, ô lưới toạ độ,
-   slider). Áp dụng rộng tới 768px để cả các máy tablet/phone lớn cũng
-   được hưởng lợi, không chỉ điện thoại nhỏ. */
-@media (max-width:768px){
-  .btn{padding:13px 20px;font-size:14px}
-  #symbolTray .btn, #peopleTray .btn{
-    padding:13px 16px !important;
-    font-size:14px !important;
-    min-width:80px;
-  }
-}
-
-::selection{background:rgba(232,197,118,.3)}
-button{font-family:inherit}
-.pillar-btn:active{transform:scale(.9);background:rgba(232,197,118,.18) !important}
-.pillar-btn:hover{border-color:var(--gold-1) !important}
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-thumb{background:rgba(232,197,118,.3);border-radius:99px}
+::-webkit-scrollbar-track{background:transparent}
 </style>
 </head>
 <body>
 <div id="app">
-  <canvas id="bgcanvas"></canvas>
-  <div class="vignette"></div>
-  <div class="grain"></div>
-
-  <header class="hud-top">
-    <div class="brandmark">
-      <svg class="glyph" viewBox="0 0 24 24" fill="none">
-        <path d="M12 2C12 2 14.5 6.5 14.5 9.5C14.5 11.98 12 13 12 13C12 13 9.5 11.98 9.5 9.5C9.5 6.5 12 2 12 2Z" fill="url(#gg1)"/>
-        <path d="M12 13C12 13 17 12.5 20 15C22.5 17 22 20 22 20C22 20 19 20.5 16.5 18.5C13.7 16.2 12 13 12 13Z" fill="url(#gg1)" opacity=".85"/>
-        <path d="M12 13C12 13 7 12.5 4 15C1.5 17 2 20 2 20C2 20 5 20.5 7.5 18.5C10.3 16.2 12 13 12 13Z" fill="url(#gg1)" opacity=".85"/>
-        <circle cx="12" cy="13" r="1.6" fill="#fff"/>
-        <defs><linearGradient id="gg1" x1="2" y1="2" x2="22" y2="20"><stop stop-color="#f6e2ad"/><stop offset="1" stop-color="#c9973f"/></linearGradient></defs>
-      </svg>
-      <span>Khúc Ca Hy Vọng</span>
-    </div>
-
-    <div class="chapter-pip" id="chapterPips"></div>
-
-    <div style="display:flex;align-items:center;gap:10px">
-      <div class="timer-wrap" id="timerWrap">
-        <svg class="timer-ring" viewBox="0 0 36 36">
-          <circle cx="18" cy="18" r="15.5" fill="none" stroke="rgba(232,197,118,.16)" stroke-width="3"/>
-          <circle id="timerArc" cx="18" cy="18" r="15.5" fill="none" stroke="url(#tg)" stroke-width="3" stroke-linecap="round" stroke-dasharray="97.4" stroke-dashoffset="0" transform="rotate(-90 18 18)"/>
-          <defs><linearGradient id="tg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f6e2ad"/><stop offset="1" stop-color="#ff9d4d"/></linearGradient></defs>
-        </svg>
-        <span class="timer-num" id="timerNum">10:00</span>
-      </div>
-      <button class="icon-btn" id="muteBtn" aria-label="Bật/tắt âm thanh" title="Âm thanh">♪</button>
-    </div>
-  </header>
-
-  <div class="stage-banner" id="stageBanner">
-    <div class="stage-eyebrow" id="stageEyebrow">PHẦN I</div>
-    <div class="stage-title" id="stageTitle">Gò Sen</div>
-  </div>
-
-  <div id="stage-root"></div>
-
+  <div id="toast" class="toast"></div>
+  <div id="screens"></div>
   <div class="dialogue" id="dialogueWrap">
     <div class="dialogue-card" id="dialogueCard">
-      <div class="dialogue-speaker" id="dSpeaker"><span class="dot"></span><span id="dSpeakerName">Mai</span></div>
+      <div class="dialogue-speaker"><span class="dot"></span><span id="dSpeakerName">Mai</span></div>
       <div class="dialogue-text" id="dText"></div>
       <div class="dialogue-actions" id="dActions"></div>
     </div>
   </div>
-
-  <div class="toast" id="toast"></div>
-
   <div class="modal" id="modal">
     <div class="modal-card">
       <div class="modal-kicker" id="modalKicker">KHÚC CA HY VỌNG</div>
